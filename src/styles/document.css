@@ -1,0 +1,931 @@
+/* Стили для правильного отображения импортированных документов */
+
+.document-viewer {
+
+    /* Сброс стилей для правильного отображения */
+    * {
+        box-sizing: border-box;
+    }
+
+    /* Предотвращаем нежелательный скролл */
+    scroll-behavior: auto !important;
+
+    /* Стабилизируем высоту */
+    min-height: 100vh;
+    overflow-anchor: none;
+
+    /* Заголовки */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        color: #1e293b;
+        margin-top: 24px;
+        margin-bottom: 12px;
+        font-weight: bold;
+        line-height: 1.3;
+    }
+
+    h1 {
+        font-size: 28px;
+    }
+
+    h2 {
+        font-size: 24px;
+    }
+
+    h3 {
+        font-size: 20px;
+    }
+
+    h4 {
+        font-size: 18px;
+    }
+
+    h5 {
+        font-size: 16px;
+    }
+
+    h6 {
+        font-size: 14px;
+    }
+
+    /* Параграфы */
+    p {
+        margin-bottom: 16px;
+        line-height: 1.6;
+        text-align: justify;
+    }
+
+    /* Таблицы */
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 20px 0;
+        border: 1px solid #e2e8f0;
+    }
+
+    th,
+    td {
+        border: 1px solid #e2e8f0;
+        padding: 8px 12px;
+        text-align: left;
+        vertical-align: top;
+    }
+
+    th {
+        background-color: #f8fafc;
+        font-weight: bold;
+    }
+
+    /* Списки */
+    ul,
+    ol {
+        margin: 16px 0;
+        padding-left: 24px;
+    }
+
+    li {
+        margin-bottom: 8px;
+        line-height: 1.6;
+    }
+
+    /* Форматирование текста */
+    strong,
+    b {
+        font-weight: bold;
+    }
+
+    em,
+    i {
+        font-style: italic;
+    }
+
+    u {
+        text-decoration: underline;
+    }
+
+    del,
+    s {
+        text-decoration: line-through;
+    }
+
+    /* Изображения */
+    img {
+        max-width: 100%;
+        height: auto;
+        margin: 16px 0;
+        display: block;
+    }
+
+    /* Цитаты */
+    blockquote {
+        margin: 20px 0;
+        padding-left: 20px;
+        border-left: 4px solid #e2e8f0;
+        font-style: italic;
+        color: #64748b;
+    }
+
+    /* Код */
+    code {
+        background-color: #f1f5f9;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+    }
+
+    pre {
+        background-color: #f1f5f9;
+        padding: 16px;
+        border-radius: 6px;
+        overflow-x: auto;
+        margin: 16px 0;
+    }
+
+    pre code {
+        background: none;
+        padding: 0;
+    }
+
+    /* Отступы и выравнивание */
+    .text-left {
+        text-align: left;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .text-right {
+        text-align: right;
+    }
+
+    .text-justify {
+        text-align: justify;
+    }
+
+    /* Размеры шрифтов */
+    .text-xs {
+        font-size: 12px !important;
+    }
+
+    .text-sm {
+        font-size: 14px !important;
+    }
+
+    .text-base {
+        font-size: 16px !important;
+    }
+
+    .text-lg {
+        font-size: 18px !important;
+    }
+
+    .text-xl {
+        font-size: 20px !important;
+    }
+
+    .text-2xl {
+        font-size: 24px !important;
+    }
+
+    .text-3xl {
+        font-size: 28px !important;
+    }
+
+    /* Размеры шрифтов по пикселям */
+    .text-8 {
+        font-size: 8px !important;
+    }
+
+    .text-9 {
+        font-size: 9px !important;
+    }
+
+    .text-10 {
+        font-size: 10px !important;
+    }
+
+    .text-11 {
+        font-size: 11px !important;
+    }
+
+    .text-12 {
+        font-size: 12px !important;
+    }
+
+    .text-13 {
+        font-size: 13px !important;
+    }
+
+    .text-14 {
+        font-size: 14px !important;
+    }
+
+    .text-15 {
+        font-size: 15px !important;
+    }
+
+    .text-16 {
+        font-size: 16px !important;
+    }
+
+    .text-18 {
+        font-size: 18px !important;
+    }
+
+    .text-20 {
+        font-size: 20px !important;
+    }
+
+    .text-22 {
+        font-size: 22px !important;
+    }
+
+    .text-24 {
+        font-size: 24px !important;
+    }
+
+    .text-26 {
+        font-size: 26px !important;
+    }
+
+    .text-28 {
+        font-size: 28px !important;
+    }
+
+    .text-30 {
+        font-size: 30px !important;
+    }
+
+    .text-32 {
+        font-size: 32px !important;
+    }
+
+    .text-34 {
+        font-size: 34px !important;
+    }
+
+    .text-36 {
+        font-size: 36px !important;
+    }
+
+    /* Цвета текста */
+    .text-red-600 {
+        color: #dc2626;
+    }
+
+    .text-blue-600 {
+        color: #2563eb;
+    }
+
+    .text-green-600 {
+        color: #16a34a;
+    }
+
+    .text-yellow-600 {
+        color: #ca8a04;
+    }
+
+    .text-purple-600 {
+        color: #9333ea;
+    }
+
+    /* Отступы */
+    .ml-4 {
+        margin-left: 16px;
+    }
+
+    .ml-8 {
+        margin-left: 32px;
+    }
+
+    .ml-12 {
+        margin-left: 48px;
+    }
+
+    .ml-16 {
+        margin-left: 64px;
+    }
+
+    .mr-4 {
+        margin-right: 16px;
+    }
+
+    .mr-8 {
+        margin-right: 32px;
+    }
+
+    .mr-12 {
+        margin-right: 48px;
+    }
+
+    .mr-16 {
+        margin-right: 64px;
+    }
+
+    .mt-4 {
+        margin-top: 16px;
+    }
+
+    .mt-8 {
+        margin-top: 32px;
+    }
+
+    .mt-12 {
+        margin-top: 48px;
+    }
+
+    .mt-16 {
+        margin-top: 64px;
+    }
+
+    .mb-4 {
+        margin-bottom: 16px;
+    }
+
+    .mb-8 {
+        margin-bottom: 32px;
+    }
+
+    .mb-12 {
+        margin-bottom: 48px;
+    }
+
+    .mb-16 {
+        margin-bottom: 64px;
+    }
+
+    /* Внутренние отступы */
+    .p-4 {
+        padding: 16px;
+    }
+
+    .p-8 {
+        padding: 32px;
+    }
+
+    .p-12 {
+        padding: 48px;
+    }
+
+    .p-16 {
+        padding: 64px;
+    }
+
+    /* Специальные стили для Word документов */
+    .MsoNormal {
+        margin: 0;
+        line-height: 1.6;
+    }
+
+    .MsoListParagraph {
+        margin: 0;
+        text-indent: 0;
+    }
+
+    /* Стили для таблиц Word */
+    .MsoTableGrid {
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    .MsoTableGrid td,
+    .MsoTableGrid th {
+        border: 1px solid #000;
+        padding: 4px 8px;
+    }
+
+    /* Стили для заголовков Word */
+    .MsoHeading1 {
+        font-size: 28px;
+        font-weight: bold;
+        margin: 24px 0 12px 0;
+        color: #1e293b;
+    }
+
+    .MsoHeading2 {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 20px 0 10px 0;
+        color: #1e293b;
+    }
+
+    .MsoHeading3 {
+        font-size: 20px;
+        font-weight: bold;
+        margin: 16px 0 8px 0;
+        color: #1e293b;
+    }
+
+    /* Стили для списков Word */
+    .MsoListBullet {
+        margin: 8px 0;
+        padding-left: 20px;
+    }
+
+    .MsoListNumber {
+        margin: 8px 0;
+        padding-left: 20px;
+    }
+
+    /* Стили для отступов Word */
+    .MsoIndent1 {
+        margin-left: 24px;
+    }
+
+    .MsoIndent2 {
+        margin-left: 48px;
+    }
+
+    .MsoIndent3 {
+        margin-left: 72px;
+    }
+
+    .MsoIndent4 {
+        margin-left: 96px;
+    }
+
+    /* Стили для выравнивания Word */
+    .MsoAlignLeft {
+        text-align: left;
+    }
+
+    .MsoAlignCenter {
+        text-align: center;
+    }
+
+    .MsoAlignRight {
+        text-align: right;
+    }
+
+    .MsoAlignJustify {
+        text-align: justify;
+    }
+
+    /* Стили для размеров шрифтов Word */
+    .MsoFontSize8 {
+        font-size: 8px !important;
+    }
+
+    .MsoFontSize9 {
+        font-size: 9px !important;
+    }
+
+    .MsoFontSize10 {
+        font-size: 10px !important;
+    }
+
+    .MsoFontSize11 {
+        font-size: 11px !important;
+    }
+
+    .MsoFontSize12 {
+        font-size: 12px !important;
+    }
+
+    .MsoFontSize14 {
+        font-size: 14px !important;
+    }
+
+    .MsoFontSize16 {
+        font-size: 16px !important;
+    }
+
+    .MsoFontSize18 {
+        font-size: 18px !important;
+    }
+
+    .MsoFontSize20 {
+        font-size: 20px !important;
+    }
+
+    .MsoFontSize22 {
+        font-size: 22px !important;
+    }
+
+    .MsoFontSize24 {
+        font-size: 24px !important;
+    }
+
+    .MsoFontSize26 {
+        font-size: 26px !important;
+    }
+
+    .MsoFontSize28 {
+        font-size: 28px !important;
+    }
+
+    .MsoFontSize30 {
+        font-size: 30px !important;
+    }
+
+    .MsoFontSize32 {
+        font-size: 32px !important;
+    }
+
+    .MsoFontSize34 {
+        font-size: 34px !important;
+    }
+
+    .MsoFontSize36 {
+        font-size: 36px !important;
+    }
+
+    /* Стили для inline размеров шрифтов */
+    span[style*="font-size"] {
+        font-size: inherit !important;
+    }
+
+    /* Принудительные стили для размеров шрифтов */
+    font[size="1"] {
+        font-size: 8px !important;
+    }
+
+    font[size="2"] {
+        font-size: 10px !important;
+    }
+
+    font[size="3"] {
+        font-size: 12px !important;
+    }
+
+    font[size="4"] {
+        font-size: 14px !important;
+    }
+
+    font[size="5"] {
+        font-size: 18px !important;
+    }
+
+    font[size="6"] {
+        font-size: 24px !important;
+    }
+
+    font[size="7"] {
+        font-size: 36px !important;
+    }
+
+    /* Стили для цветов Word */
+    .MsoColorRed {
+        color: #dc2626;
+    }
+
+    .MsoColorBlue {
+        color: #2563eb;
+    }
+
+    .MsoColorGreen {
+        color: #16a34a;
+    }
+
+    .MsoColorYellow {
+        color: #ca8a04;
+    }
+
+    .MsoColorPurple {
+        color: #9333ea;
+    }
+
+    .MsoColorOrange {
+        color: #ea580c;
+    }
+
+    .MsoColorPink {
+        color: #ec4899;
+    }
+
+    .MsoColorGray {
+        color: #6b7280;
+    }
+
+    .MsoColorBlack {
+        color: #000000;
+    }
+
+    /* Стили для форматирования Word */
+    .MsoBold {
+        font-weight: bold;
+    }
+
+    .MsoItalic {
+        font-style: italic;
+    }
+
+    .MsoUnderline {
+        text-decoration: underline;
+    }
+
+    .MsoStrike {
+        text-decoration: line-through;
+    }
+
+    /* Стили для отступов абзацев Word */
+    .MsoParaSpacing0 {
+        margin-bottom: 0;
+    }
+
+    .MsoParaSpacing6 {
+        margin-bottom: 6px;
+    }
+
+    .MsoParaSpacing12 {
+        margin-bottom: 12px;
+    }
+
+    .MsoParaSpacing18 {
+        margin-bottom: 18px;
+    }
+
+    .MsoParaSpacing24 {
+        margin-bottom: 24px;
+    }
+
+    /* Стили для межстрочного интервала Word */
+    .MsoLineHeight100 {
+        line-height: 1.0;
+    }
+
+    .MsoLineHeight115 {
+        line-height: 1.15;
+    }
+
+    .MsoLineHeight150 {
+        line-height: 1.5;
+    }
+
+    .MsoLineHeight200 {
+        line-height: 2.0;
+    }
+
+    /* Принудительные стили для inline размеров шрифтов */
+    *[style*="font-size"] {
+        font-size: inherit !important;
+    }
+
+    /* Стили для элементов с inline стилями */
+    *[style] {
+        /* Принудительно применяем все inline стили */
+    }
+
+    /* Стили для заголовков с inline стилями */
+    h1[style*="font-size"] {
+        font-size: inherit !important;
+    }
+
+    h2[style*="font-size"] {
+        font-size: inherit !important;
+    }
+
+    h3[style*="font-size"] {
+        font-size: inherit !important;
+    }
+
+    h4[style*="font-size"] {
+        font-size: inherit !important;
+    }
+
+    h5[style*="font-size"] {
+        font-size: inherit !important;
+    }
+
+    h6[style*="font-size"] {
+        font-size: inherit !important;
+    }
+
+    /* Стили для параграфов с inline стилями */
+    p[style*="margin"] {
+        margin: inherit !important;
+    }
+
+    p[style*="font-size"] {
+        font-size: inherit !important;
+    }
+
+    /* Стили для списков с inline стилями */
+    ul[style*="margin"],
+    ol[style*="margin"] {
+        margin: inherit !important;
+    }
+
+    ul[style*="padding"],
+    ol[style*="padding"] {
+        padding: inherit !important;
+    }
+
+    li[style*="margin"] {
+        margin: inherit !important;
+    }
+
+    /* Стили для таблиц с inline стилями */
+    table[style*="border-collapse"] {
+        border-collapse: inherit !important;
+    }
+
+    table[style*="width"] {
+        width: inherit !important;
+    }
+
+    table[style*="margin"] {
+        margin: inherit !important;
+    }
+
+    td[style*="border"],
+    th[style*="border"] {
+        border: inherit !important;
+    }
+
+    td[style*="padding"],
+    th[style*="padding"] {
+        padding: inherit !important;
+    }
+
+    /* Стили для размеров шрифтов в пунктах */
+    *[style*="font-size: 8pt"] {
+        font-size: 8pt !important;
+    }
+
+    *[style*="font-size: 9pt"] {
+        font-size: 9pt !important;
+    }
+
+    *[style*="font-size: 10pt"] {
+        font-size: 10pt !important;
+    }
+
+    *[style*="font-size: 11pt"] {
+        font-size: 11pt !important;
+    }
+
+    *[style*="font-size: 12pt"] {
+        font-size: 12pt !important;
+    }
+
+    *[style*="font-size: 14pt"] {
+        font-size: 14pt !important;
+    }
+
+    *[style*="font-size: 16pt"] {
+        font-size: 16pt !important;
+    }
+
+    *[style*="font-size: 18pt"] {
+        font-size: 18pt !important;
+    }
+
+    *[style*="font-size: 20pt"] {
+        font-size: 20pt !important;
+    }
+
+    *[style*="font-size: 22pt"] {
+        font-size: 22pt !important;
+    }
+
+    *[style*="font-size: 24pt"] {
+        font-size: 24pt !important;
+    }
+
+    *[style*="font-size: 26pt"] {
+        font-size: 26pt !important;
+    }
+
+    *[style*="font-size: 28pt"] {
+        font-size: 28pt !important;
+    }
+
+    *[style*="font-size: 30pt"] {
+        font-size: 30pt !important;
+    }
+
+    *[style*="font-size: 32pt"] {
+        font-size: 32pt !important;
+    }
+
+    *[style*="font-size: 34pt"] {
+        font-size: 34pt !important;
+    }
+
+    *[style*="font-size: 36pt"] {
+        font-size: 36pt !important;
+    }
+
+    /* Стили для отступов */
+    *[style*="margin:"] {
+        margin: inherit !important;
+    }
+
+    *[style*="padding:"] {
+        padding: inherit !important;
+    }
+
+    *[style*="text-indent:"] {
+        text-indent: inherit !important;
+    }
+
+    /* Стили для выравнивания */
+    *[style*="text-align: left"] {
+        text-align: left !important;
+    }
+
+    *[style*="text-align: center"] {
+        text-align: center !important;
+    }
+
+    *[style*="text-align: right"] {
+        text-align: right !important;
+    }
+
+    *[style*="text-align: justify"] {
+        text-align: justify !important;
+    }
+
+    /* Стили для inline стилей размеров шрифтов */
+    span[style*="font-size: 8px"],
+    span[style*="font-size:8px"] {
+        font-size: 8px !important;
+    }
+
+    span[style*="font-size: 9px"],
+    span[style*="font-size:9px"] {
+        font-size: 9px !important;
+    }
+
+    span[style*="font-size: 10px"],
+    span[style*="font-size:10px"] {
+        font-size: 10px !important;
+    }
+
+    span[style*="font-size: 11px"],
+    span[style*="font-size:11px"] {
+        font-size: 11px !important;
+    }
+
+    span[style*="font-size: 12px"],
+    span[style*="font-size:12px"] {
+        font-size: 12px !important;
+    }
+
+    span[style*="font-size: 14px"],
+    span[style*="font-size:14px"] {
+        font-size: 14px !important;
+    }
+
+    span[style*="font-size: 16px"],
+    span[style*="font-size:16px"] {
+        font-size: 16px !important;
+    }
+
+    span[style*="font-size: 18px"],
+    span[style*="font-size:18px"] {
+        font-size: 18px !important;
+    }
+
+    span[style*="font-size: 20px"],
+    span[style*="font-size:20px"] {
+        font-size: 20px !important;
+    }
+
+    span[style*="font-size: 22px"],
+    span[style*="font-size:22px"] {
+        font-size: 22px !important;
+    }
+
+    span[style*="font-size: 24px"],
+    span[style*="font-size:24px"] {
+        font-size: 24px !important;
+    }
+
+    span[style*="font-size: 26px"],
+    span[style*="font-size:26px"] {
+        font-size: 26px !important;
+    }
+
+    span[style*="font-size: 28px"],
+    span[style*="font-size:28px"] {
+        font-size: 28px !important;
+    }
+
+    span[style*="font-size: 30px"],
+    span[style*="font-size:30px"] {
+        font-size: 30px !important;
+    }
+
+    span[style*="font-size: 32px"],
+    span[style*="font-size:32px"] {
+        font-size: 32px !important;
+    }
+
+    span[style*="font-size: 34px"],
+    span[style*="font-size:34px"] {
+        font-size: 34px !important;
+    }
+
+    span[style*="font-size: 36px"],
+    span[style*="font-size:36px"] {
+        font-size: 36px !important;
+    }
+}

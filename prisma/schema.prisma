@@ -1,0 +1,51 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  createdAt DateTime @default(now())
+  documents Document[]
+}
+
+model Document {
+  id         String       @id @default(cuid())
+  ownerId    String
+  owner      User         @relation(fields: [ownerId], references: [id])
+  title      String
+  type       DocumentType
+  storageKey String       // путь/ключ файла-источника
+  html       String?      // для docx/html редактирования
+  pptxJson   Json?        // нормализованный JSON слайдов
+  xlsxJson   Json?        // нормализованные таблицы
+  pdfAnnots  Json?        // аннотации
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  revisions  Revision[]
+}
+
+enum DocumentType {
+  docx
+  pptx
+  xlsx
+  pdf
+  html
+}
+
+model Revision {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id])
+  patch      Json     // diff/patch
+  createdAt  DateTime @default(now())
+}
