@@ -7,6 +7,7 @@ import Sidebar from '@/components/sidebar'
 import ChatPanel from '@/components/chat/ChatPanel'
 import { useDocumentImport } from '@/hooks/useDocumentImport'
 import { FileText } from 'lucide-react'
+import type { DocumentData } from '@/hooks/useDocumentImport'
 
 // Динамические импорты для предотвращения SSR проблем
 const OnlyOfficeEditor = dynamic(() => import('@/components/editor/OnlyOfficeEditor'), { ssr: false })
@@ -31,7 +32,8 @@ export default function AppPage() {
         clearError,
         updateDocument,
         deleteDocument,
-        selectDocument
+        selectDocument,
+        syncDocument
     } = useDocumentImport()
 
     const [doc, setDoc] = useState<DocState>({ kind: 'none' })
@@ -74,6 +76,10 @@ export default function AppPage() {
 
     const handleDocumentSelect = (doc: any) => {
         selectDocument(doc)
+    }
+
+    const handleDocumentUpdated = (doc: DocumentData) => {
+        syncDocument(doc)
     }
 
     return (
@@ -203,10 +209,10 @@ export default function AppPage() {
             </main>
 
             {/* Chat Panel */}
-            <aside className="bg-slate-50">
+            <aside className="bg-slate-50 h-full overflow-hidden">
                 <ChatPanel
                     currentDocument={currentDocument}
-                    onDocumentUpdate={handleDocumentSelect}
+                    onDocumentUpdate={handleDocumentUpdated}
                 />
             </aside>
         </div>

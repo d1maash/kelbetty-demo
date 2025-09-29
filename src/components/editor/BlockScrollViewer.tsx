@@ -31,15 +31,15 @@ export default function BlockScrollViewer({ document, onSave }: BlockScrollViewe
 
         // Блокируем скролл через CSS
         const blockScroll = () => {
-            if (typeof document !== 'undefined' && document.body && document.documentElement) {
+            if (typeof window !== 'undefined' && window.document && window.document.body && window.document.documentElement) {
                 // ПРИНУДИТЕЛЬНО блокируем скролл
-                document.body.style.overflow = 'hidden'
-                document.body.style.position = 'fixed'
-                document.body.style.top = '0'
-                document.body.style.left = '0'
-                document.body.style.width = '100%'
-                document.body.style.height = '100%'
-                document.documentElement.style.overflow = 'hidden'
+                window.document.body.style.overflow = 'hidden'
+                window.document.body.style.position = 'fixed'
+                window.document.body.style.top = '0'
+                window.document.body.style.left = '0'
+                window.document.body.style.width = '100%'
+                window.document.body.style.height = '100%'
+                window.document.documentElement.style.overflow = 'hidden'
 
                 // ПРИНУДИТЕЛЬНО возвращаемся в начало
                 window.scrollTo(0, 0)
@@ -81,11 +81,11 @@ export default function BlockScrollViewer({ document, onSave }: BlockScrollViewe
         window.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true })
         window.addEventListener('keydown', handleKeyDown, { passive: false, capture: true })
 
-        if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
-            document.addEventListener('scroll', handleScroll, { passive: false, capture: true })
-            document.addEventListener('wheel', handleWheel, { passive: false, capture: true })
-            document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true })
-            document.addEventListener('keydown', handleKeyDown, { passive: false, capture: true })
+        if (typeof window !== 'undefined' && typeof window.document.addEventListener === 'function') {
+            window.document.addEventListener('scroll', handleScroll, { passive: false, capture: true })
+            window.document.addEventListener('wheel', handleWheel, { passive: false, capture: true })
+            window.document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true })
+            window.document.addEventListener('keydown', handleKeyDown, { passive: false, capture: true })
         }
 
         // ПРИНУДИТЕЛЬНО возвращаемся в начало каждые 100мс
@@ -100,25 +100,25 @@ export default function BlockScrollViewer({ document, onSave }: BlockScrollViewe
             window.removeEventListener('touchmove', handleTouchMove)
             window.removeEventListener('keydown', handleKeyDown)
 
-            if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') {
-                document.removeEventListener('scroll', handleScroll)
-                document.removeEventListener('wheel', handleWheel)
-                document.removeEventListener('touchmove', handleTouchMove)
-                document.removeEventListener('keydown', handleKeyDown)
+            if (typeof window !== 'undefined' && typeof window.document.removeEventListener === 'function') {
+                window.document.removeEventListener('scroll', handleScroll)
+                window.document.removeEventListener('wheel', handleWheel)
+                window.document.removeEventListener('touchmove', handleTouchMove)
+                window.document.removeEventListener('keydown', handleKeyDown)
             }
 
             // Очищаем интервал
             clearInterval(forceScrollInterval)
 
             // Разблокируем скролл
-            if (typeof document !== 'undefined' && document.body && document.documentElement) {
-                document.body.style.overflow = ''
-                document.body.style.position = ''
-                document.body.style.top = ''
-                document.body.style.left = ''
-                document.body.style.width = ''
-                document.body.style.height = ''
-                document.documentElement.style.overflow = ''
+            if (typeof window !== 'undefined' && window.document.body && window.document.documentElement) {
+                window.document.body.style.overflow = ''
+                window.document.body.style.position = ''
+                window.document.body.style.top = ''
+                window.document.body.style.left = ''
+                window.document.body.style.width = ''
+                window.document.body.style.height = ''
+                window.document.documentElement.style.overflow = ''
             }
         }
     }, [])

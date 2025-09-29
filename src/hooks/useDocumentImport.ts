@@ -249,6 +249,27 @@ export function useDocumentImport() {
         setCurrentDocument(document)
     }, [])
 
+    const syncDocument = useCallback((document: DocumentData) => {
+        setDocuments(prev => {
+            const index = prev.findIndex(item => item.id === document.id)
+
+            if (index === -1) {
+                return [document, ...prev]
+            }
+
+            const updated = [...prev]
+            updated[index] = { ...updated[index], ...document }
+            return updated
+        })
+
+        setCurrentDocument(prev => {
+            if (!prev || prev.id !== document.id) {
+                return { ...document }
+            }
+            return { ...prev, ...document }
+        })
+    }, [])
+
     return {
         state,
         currentDocument,
@@ -259,6 +280,7 @@ export function useDocumentImport() {
         updateDocument,
         deleteDocument,
         selectDocument,
+        syncDocument,
         loadDocuments
     }
 }

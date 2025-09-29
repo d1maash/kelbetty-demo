@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     } catch (error) {
         console.error('Ошибка тестирования импорта:', error)
         return NextResponse.json(
-            { error: 'Ошибка тестирования импорта', details: error.message },
+            { error: 'Ошибка тестирования импорта', details: error instanceof Error ? error.message : 'Неизвестная ошибка' },
             { status: 500 }
         )
     }

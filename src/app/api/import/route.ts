@@ -74,7 +74,6 @@ export async function POST(req: NextRequest) {
                 "th => th:fresh"
             ],
             includeDefaultStyleMap: true,
-            preserveStyles: true, // Сохраняем стили
             convertImage: mammoth.images.imgElement(function (image) {
                 return image.read("base64").then(function (imageBuffer) {
                     return {
@@ -89,7 +88,7 @@ export async function POST(req: NextRequest) {
             setTimeout(() => reject(new Error('Таймаут конвертации mammoth')), 30000)
         })
 
-        const result = await Promise.race([mammothPromise, timeoutPromise])
+        const result = await Promise.race([mammothPromise, timeoutPromise]) as any
 
         console.log('Конвертация завершена успешно!')
         console.log('Длина HTML:', result.value.length, 'символов')

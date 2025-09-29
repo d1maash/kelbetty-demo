@@ -125,12 +125,12 @@ export default function ImportedDocxEditor({ document, onSave }: ImportedDocxEdi
             // Создаем blob и скачиваем
             const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' })
             const url = URL.createObjectURL(blob)
-            const a = document.createElement('a')
+            const a = window.document.createElement('a')
             a.href = url
             a.download = `${document.title}_exported.html`
-            document.body.appendChild(a)
+            window.document.body.appendChild(a)
             a.click()
-            document.body.removeChild(a)
+            window.document.body.removeChild(a)
             URL.revokeObjectURL(url)
 
             toast.success('Документ экспортирован в HTML')

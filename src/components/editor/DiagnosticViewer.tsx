@@ -32,7 +32,7 @@ export default function DiagnosticViewer({ document, onSave }: DiagnosticViewerP
         if (typeof window === 'undefined') return
 
         const handleScroll = () => {
-            const scrollTop = window.pageYOffset || (document.documentElement?.scrollTop ?? 0)
+            const scrollTop = window.pageYOffset || (window.document.documentElement?.scrollTop ?? 0)
             setScrollEvents(prev => [...prev.slice(-9), `Скролл: ${scrollTop}px в ${new Date().toLocaleTimeString()}`])
         }
 
@@ -56,7 +56,7 @@ export default function DiagnosticViewer({ document, onSave }: DiagnosticViewerP
         if (editorRef.current && document.html && typeof window !== 'undefined') {
             // Блокируем скролл полностью
             setIsLocked(true)
-            const originalScrollTop = window.pageYOffset || (document.documentElement?.scrollTop ?? 0)
+            const originalScrollTop = window.pageYOffset || (window.document.documentElement?.scrollTop ?? 0)
 
             console.log('🔍 Исходная позиция скролла:', originalScrollTop)
 

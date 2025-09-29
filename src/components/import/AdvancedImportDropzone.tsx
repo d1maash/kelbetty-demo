@@ -174,7 +174,7 @@ export default function AdvancedImportDropzone({
                             Импорт завершен!
                         </h3>
                         <p className="text-sm text-green-700 mb-4">
-                            Документ "{importResult.document?.title}" успешно импортирован
+                            Документ &quot;{importResult.document?.title}&quot; успешно импортирован
                         </p>
                         {importResult.warnings && importResult.warnings.length > 0 && (
                             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">

@@ -34,15 +34,15 @@ export default function PreventScrollViewer({ document, onSave }: PreventScrollV
 
         // Блокируем скролл через CSS СРАЗУ
         const blockScroll = () => {
-            if (typeof document !== 'undefined' && document.body && document.documentElement) {
+            if (typeof window !== 'undefined' && window.document.body && window.document.documentElement) {
                 // ПРИНУДИТЕЛЬНО блокируем скролл
-                document.body.style.overflow = 'hidden'
-                document.body.style.position = 'fixed'
-                document.body.style.top = '0'
-                document.body.style.left = '0'
-                document.body.style.width = '100%'
-                document.body.style.height = '100%'
-                document.documentElement.style.overflow = 'hidden'
+                window.document.body.style.overflow = 'hidden'
+                window.document.body.style.position = 'fixed'
+                window.document.body.style.top = '0'
+                window.document.body.style.left = '0'
+                window.document.body.style.width = '100%'
+                window.document.body.style.height = '100%'
+                window.document.documentElement.style.overflow = 'hidden'
 
                 // ПРИНУДИТЕЛЬНО возвращаемся в начало
                 window.scrollTo(0, 0)
@@ -84,11 +84,11 @@ export default function PreventScrollViewer({ document, onSave }: PreventScrollV
         window.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true })
         window.addEventListener('keydown', handleKeyDown, { passive: false, capture: true })
 
-        if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
-            document.addEventListener('scroll', handleScroll, { passive: false, capture: true })
-            document.addEventListener('wheel', handleWheel, { passive: false, capture: true })
-            document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true })
-            document.addEventListener('keydown', handleKeyDown, { passive: false, capture: true })
+        if (typeof window !== 'undefined' && typeof window.document.addEventListener === 'function') {
+            window.document.addEventListener('scroll', handleScroll, { passive: false, capture: true })
+            window.document.addEventListener('wheel', handleWheel, { passive: false, capture: true })
+            window.document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true })
+            window.document.addEventListener('keydown', handleKeyDown, { passive: false, capture: true })
         }
 
         // ПРИНУДИТЕЛЬНО возвращаемся в начало каждые 50мс

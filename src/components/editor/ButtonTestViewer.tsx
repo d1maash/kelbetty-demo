@@ -30,8 +30,8 @@ export default function ButtonTestViewer({ document, onSave }: ButtonTestViewerP
     // Отслеживаем позицию кнопок
     useEffect(() => {
         const checkButtonPosition = () => {
-            if (typeof document !== 'undefined' && typeof document.querySelectorAll === 'function') {
-                const buttons = document.querySelectorAll('button')
+            if (typeof window !== 'undefined' && typeof window.document.querySelectorAll === 'function') {
+                const buttons = window.document.querySelectorAll('button')
                 if (buttons.length > 0) {
                     const firstButton = buttons[0]
                     const rect = firstButton.getBoundingClientRect()

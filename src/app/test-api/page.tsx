@@ -78,7 +78,7 @@ export default function TestApiPage() {
                 <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <h3 className="font-semibold text-yellow-800 mb-2">Инструкции:</h3>
                     <ol className="text-sm text-yellow-700 space-y-1 list-decimal list-inside">
-                        <li>Нажмите "Тестировать API" для проверки доступности</li>
+                        <li>Нажмите &quot;Тестировать API&quot; для проверки доступности</li>
                         <li>Проверьте консоль браузера для подробных логов</li>
                         <li>Если API недоступен, проверьте сервер разработки</li>
                     </ol>

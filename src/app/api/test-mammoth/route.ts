@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
                 try {
                     // Способ 3: с Uint8Array
-                    result = await mammoth.convertToHtml({ buffer: new Uint8Array(arrayBuffer) })
+                    result = await mammoth.convertToHtml({ buffer: Buffer.from(arrayBuffer) })
                     console.log('Успешно с Uint8Array')
                 } catch (error3) {
                     console.log('Ошибка с Uint8Array:', error3)

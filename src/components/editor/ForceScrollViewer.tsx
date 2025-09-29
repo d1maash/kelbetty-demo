@@ -56,10 +56,10 @@ export default function ForceScrollViewer({ document, onSave }: ForceScrollViewe
         window.addEventListener('touchmove', handleTouchMove, { passive: false })
 
         // Используем глобальный document
-        if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
-            document.addEventListener('scroll', handleScroll, { passive: false })
-            document.addEventListener('wheel', handleWheel, { passive: false })
-            document.addEventListener('touchmove', handleTouchMove, { passive: false })
+        if (typeof window !== 'undefined' && typeof window.document.addEventListener === 'function') {
+            window.document.addEventListener('scroll', handleScroll, { passive: false })
+            window.document.addEventListener('wheel', handleWheel, { passive: false })
+            window.document.addEventListener('touchmove', handleTouchMove, { passive: false })
         }
 
         return () => {
@@ -67,10 +67,10 @@ export default function ForceScrollViewer({ document, onSave }: ForceScrollViewe
             window.removeEventListener('wheel', handleWheel)
             window.removeEventListener('touchmove', handleTouchMove)
 
-            if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') {
-                document.removeEventListener('scroll', handleScroll)
-                document.removeEventListener('wheel', handleWheel)
-                document.removeEventListener('touchmove', handleTouchMove)
+            if (typeof window !== 'undefined' && typeof window.document.removeEventListener === 'function') {
+                window.document.removeEventListener('scroll', handleScroll)
+                window.document.removeEventListener('wheel', handleWheel)
+                window.document.removeEventListener('touchmove', handleTouchMove)
             }
         }
     }, [])
@@ -83,14 +83,14 @@ export default function ForceScrollViewer({ document, onSave }: ForceScrollViewe
             setIsLocked(true)
 
             // ПРИНУДИТЕЛЬНО блокируем скролл
-            if (typeof document !== 'undefined' && document.body && document.documentElement) {
-                document.body.style.overflow = 'hidden'
-                document.documentElement.style.overflow = 'hidden'
-                document.body.style.position = 'fixed'
-                document.body.style.top = '0'
-                document.body.style.left = '0'
-                document.body.style.width = '100%'
-                document.body.style.height = '100%'
+            if (typeof window !== 'undefined' && window.document.body && window.document.documentElement) {
+                window.document.body.style.overflow = 'hidden'
+                window.document.documentElement.style.overflow = 'hidden'
+                window.document.body.style.position = 'fixed'
+                window.document.body.style.top = '0'
+                window.document.body.style.left = '0'
+                window.document.body.style.width = '100%'
+                window.document.body.style.height = '100%'
             }
 
             // ПРИНУДИТЕЛЬНО возвращаемся в начало
@@ -151,27 +151,27 @@ export default function ForceScrollViewer({ document, onSave }: ForceScrollViewe
     }
 
     const unlockScroll = () => {
-        if (typeof window !== 'undefined' && typeof document !== 'undefined' && document.body && document.documentElement) {
-            document.body.style.overflow = ''
-            document.documentElement.style.overflow = ''
-            document.body.style.position = ''
-            document.body.style.top = ''
-            document.body.style.left = ''
-            document.body.style.width = ''
-            document.body.style.height = ''
+        if (typeof window !== 'undefined' && window.document.body && window.document.documentElement) {
+            window.document.body.style.overflow = ''
+            window.document.documentElement.style.overflow = ''
+            window.document.body.style.position = ''
+            window.document.body.style.top = ''
+            window.document.body.style.left = ''
+            window.document.body.style.width = ''
+            window.document.body.style.height = ''
             console.log('🔓 Скролл разблокирован')
         }
     }
 
     const lockScroll = () => {
-        if (typeof window !== 'undefined' && typeof document !== 'undefined' && document.body && document.documentElement) {
-            document.body.style.overflow = 'hidden'
-            document.documentElement.style.overflow = 'hidden'
-            document.body.style.position = 'fixed'
-            document.body.style.top = '0'
-            document.body.style.left = '0'
-            document.body.style.width = '100%'
-            document.body.style.height = '100%'
+        if (typeof window !== 'undefined' && window.document.body && window.document.documentElement) {
+            window.document.body.style.overflow = 'hidden'
+            window.document.documentElement.style.overflow = 'hidden'
+            window.document.body.style.position = 'fixed'
+            window.document.body.style.top = '0'
+            window.document.body.style.left = '0'
+            window.document.body.style.width = '100%'
+            window.document.body.style.height = '100%'
             window.scrollTo(0, 0)
             setScrollPosition(0)
             console.log('🔒 Скролл заблокирован')
