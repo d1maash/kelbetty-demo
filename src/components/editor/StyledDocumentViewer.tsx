@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Download, FileText, Save, Edit3, ArrowUp } from 'lucide-react'
+import { Download, FileText, Save, Edit3, ArrowUp, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface StyledDocumentViewerProps {
@@ -18,9 +18,20 @@ interface StyledDocumentViewerProps {
         }
     }
     onSave?: (documentId: string, html: string) => Promise<void>
+    onAcceptChanges?: (suggestion: any) => void
+    onRejectChanges?: () => void
+    isAiProcessing?: boolean
+    isPreview?: boolean
 }
 
-export default function StyledDocumentViewer({ document, onSave }: StyledDocumentViewerProps) {
+export default function StyledDocumentViewer({
+    document,
+    onSave,
+    onAcceptChanges,
+    onRejectChanges,
+    isAiProcessing = false,
+    isPreview = false
+}: StyledDocumentViewerProps) {
     const editorRef = useRef<HTMLDivElement>(null)
     const [isEditing, setIsEditing] = useState(false)
     const [hasChanges, setHasChanges] = useState(false)
@@ -251,9 +262,30 @@ export default function StyledDocumentViewer({ document, onSave }: StyledDocumen
                                 Есть изменения
                             </span>
                         )}
+                        {isAiProcessing && (
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded flex items-center gap-1">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                                ИИ обрабатывает запрос...
+                            </span>
+                        )}
+                        {isPreview && (
+                            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded flex items-center gap-1">
+                                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                Предварительный просмотр
+                            </span>
+                        )}
                     </div>
 
                     <div className="flex items-center space-x-2">
+                        {isPreview && (
+                            <button
+                                onClick={() => onRejectChanges?.()}
+                                className="flex items-center px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                                <X className="w-4 h-4 mr-1" />
+                                Выйти из предварительного просмотра
+                            </button>
+                        )}
                         <button
                             onClick={() => setIsEditing(!isEditing)}
                             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -292,8 +324,24 @@ export default function StyledDocumentViewer({ document, onSave }: StyledDocumen
                 </div>
             </div>
 
+
             {/* Document Content with Proper Styles */}
-            <div className="flex-1 overflow-auto bg-white">
+            <div className="flex-1 overflow-auto bg-white relative">
+                {/* Оверлей загрузки ИИ */}
+                {isAiProcessing && (
+                    <div className="fixed inset-0 bg-white bg-opacity-30 flex items-center justify-center z-50 pointer-events-none">
+                        <div className="bg-white rounded-lg shadow-lg p-6 flex flex-col items-center gap-4 pointer-events-auto">
+                            <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                <span className="text-lg font-medium text-gray-900">ИИ обрабатывает ваш запрос...</span>
+                            </div>
+                            <p className="text-sm text-gray-600 text-center">
+                                Пожалуйста, подождите. ИИ анализирует документ и готовит изменения.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 <div className="max-w-4xl mx-auto p-8">
                     <div
                         ref={editorRef}

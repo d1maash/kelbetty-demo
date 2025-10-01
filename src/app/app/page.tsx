@@ -36,8 +36,15 @@ export default function AppPage() {
         syncDocument
     } = useDocumentImport()
 
+
     const [doc, setDoc] = useState<DocState>({ kind: 'none' })
     const [viewMode, setViewMode] = useState<'styled' | 'advanced'>('styled')
+    const [isAiProcessing, setIsAiProcessing] = useState(false)
+    const [previewHtml, setPreviewHtml] = useState<string | null>(null)
+
+    // Отладочная информация
+    console.log('Текущий previewHtml:', previewHtml)
+    console.log('Текущий currentDocument.html:', currentDocument?.html)
 
     const handleDocumentLoaded = (loaded: any) => {
         console.log('Документ загружен:', loaded)
@@ -82,6 +89,48 @@ export default function AppPage() {
         syncDocument(doc)
     }
 
+
+    const handleAcceptChanges = async (suggestion: any) => {
+        if (!currentDocument || !suggestion?.suggestion?.patch?.updatedHtml) return
+
+        try {
+            await updateDocument(currentDocument.id, { html: suggestion.suggestion.patch.updatedHtml })
+            setPreviewHtml(null) // Убираем предварительный просмотр
+            console.log('Изменения приняты и сохранены')
+        } catch (error) {
+            console.error('Ошибка при сохранении изменений:', error)
+        }
+    }
+
+    const handleRejectChanges = () => {
+        setPreviewHtml(null) // Убираем предварительный просмотр
+        console.log('Изменения отклонены')
+    }
+
+    const handleAiProcessingChange = (isProcessing: boolean) => {
+        setIsAiProcessing(isProcessing)
+    }
+
+    const handleShowPreview = (suggestion: any) => {
+        console.log('Получен suggestion для предварительного просмотра:', suggestion)
+
+        // Проверяем разные возможные структуры данных
+        let updatedHtml = null
+
+        if (suggestion?.patch?.updatedHtml) {
+            updatedHtml = suggestion.patch.updatedHtml
+        } else if (suggestion?.suggestion?.patch?.updatedHtml) {
+            updatedHtml = suggestion.suggestion.patch.updatedHtml
+        }
+
+        if (updatedHtml) {
+            console.log('Устанавливаем предварительный просмотр:', updatedHtml)
+            setPreviewHtml(updatedHtml)
+        } else {
+            console.error('Не удалось найти updatedHtml в suggestion:', suggestion)
+        }
+    }
+
     return (
         <div className="grid grid-cols-[300px_1fr_360px] h-[calc(100vh-64px)]">
             {/* Sidebar */}
@@ -110,7 +159,8 @@ export default function AppPage() {
                 {/* Показываем импортированный документ */}
                 {currentDocument && doc.kind === 'none' && (
                     <>
-                        {/* Переключатель режимов - фиксированный */}
+
+                        {/* Переключатель режимов */}
                         <div className="sticky top-0 z-20 border-b border-slate-200 p-2 bg-slate-50 shadow-sm">
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-slate-600">Режим просмотра:</span>
@@ -143,7 +193,7 @@ export default function AppPage() {
                                 document={{
                                     id: currentDocument.id,
                                     title: currentDocument.title,
-                                    html: currentDocument.html,
+                                    html: previewHtml || currentDocument.html,
                                     type: currentDocument.type,
                                     createdAt: currentDocument.createdAt || new Date().toISOString(),
                                     updatedAt: currentDocument.updatedAt || new Date().toISOString(),
@@ -152,6 +202,10 @@ export default function AppPage() {
                                 onSave={async (documentId, html) => {
                                     await updateDocument(documentId, { html })
                                 }}
+                                onAcceptChanges={handleAcceptChanges}
+                                onRejectChanges={handleRejectChanges}
+                                isAiProcessing={isAiProcessing}
+                                isPreview={!!previewHtml}
                             />
                         )}
 
@@ -161,7 +215,7 @@ export default function AppPage() {
                                 document={{
                                     id: currentDocument.id,
                                     title: currentDocument.title,
-                                    html: currentDocument.html,
+                                    html: previewHtml || currentDocument.html,
                                     type: currentDocument.type,
                                     createdAt: currentDocument.createdAt || new Date().toISOString(),
                                     updatedAt: currentDocument.updatedAt || new Date().toISOString(),
@@ -170,6 +224,10 @@ export default function AppPage() {
                                 onSave={async (documentId, html) => {
                                     await updateDocument(documentId, { html })
                                 }}
+                                onAcceptChanges={handleAcceptChanges}
+                                onRejectChanges={handleRejectChanges}
+                                isAiProcessing={isAiProcessing}
+                                isPreview={!!previewHtml}
                             />
                         )}
                     </>
@@ -213,6 +271,8 @@ export default function AppPage() {
                 <ChatPanel
                     currentDocument={currentDocument}
                     onDocumentUpdate={handleDocumentUpdated}
+                    onAiProcessingChange={handleAiProcessingChange}
+                    onShowPreview={handleShowPreview}
                 />
             </aside>
         </div>
