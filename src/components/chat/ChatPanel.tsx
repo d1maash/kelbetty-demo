@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Bot, User, Sparkles, AlertCircle, CheckCircle, X } from 'lucide-react'
+import { Send, Bot, User, Sparkles, AlertCircle, CheckCircle, X, Eye } from 'lucide-react'
 import type { DocumentData } from '@/hooks/useDocumentImport'
 import '@/styles/chat.css'
 
@@ -29,9 +29,12 @@ interface Message {
 interface ChatPanelProps {
     currentDocument: DocumentData | null
     onDocumentUpdate: (document: DocumentData) => void
+    onRealtimeEdit?: (message: string) => void
+    onAiProcessingChange?: (isProcessing: boolean) => void
+    onShowPreview?: (suggestion: any) => void
 }
 
-export default function ChatPanel({ currentDocument, onDocumentUpdate }: ChatPanelProps) {
+export default function ChatPanel({ currentDocument, onDocumentUpdate, onRealtimeEdit, onAiProcessingChange, onShowPreview }: ChatPanelProps) {
     const [messages, setMessages] = useState<Message[]>([])
     const [inputValue, setInputValue] = useState('')
     const [isLoading, setIsLoading] = useState(false)
@@ -136,18 +139,22 @@ export default function ChatPanel({ currentDocument, onDocumentUpdate }: ChatPan
 
         setMessages(prev => [...prev, userMessage])
         await saveMessage(userMessage)
+
+        // Сохраняем сообщение для реального времени
+        const messageText = inputValue
         setInputValue('')
         setIsLoading(true)
+        onAiProcessingChange?.(true)
 
+        // Используем обычный API ИИ
         try {
-            // Симуляция вызова API ИИ
             const response = await fetch('/api/ai', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    message: inputValue,
+                    message: messageText,
                     documentId: currentDocument.id,
                 }),
             })
@@ -203,6 +210,7 @@ export default function ChatPanel({ currentDocument, onDocumentUpdate }: ChatPan
             await saveMessage(errorMessage)
         } finally {
             setIsLoading(false)
+            onAiProcessingChange?.(false)
         }
     }
 
@@ -283,6 +291,20 @@ export default function ChatPanel({ currentDocument, onDocumentUpdate }: ChatPan
         await saveMessage(rejectMessage)
         setPendingSuggestion(null)
     }
+
+    const handleStartRealtimeEditing = () => {
+        if (!inputValue.trim() || !currentDocument) return
+
+        if (onRealtimeEdit) {
+            onRealtimeEdit(inputValue)
+            setInputValue('')
+        } else {
+            setRealtimeMessage(inputValue)
+            setShowRealtimeEditor(true)
+            setInputValue('')
+        }
+    }
+
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -370,6 +392,20 @@ export default function ChatPanel({ currentDocument, onDocumentUpdate }: ChatPan
                                             {pendingSuggestion?.id === message.id && (
                                                 <div className="flex space-x-2">
                                                     <button
+                                                        onClick={() => {
+                                                            console.log('Показываем предварительный просмотр:', message.suggestion)
+                                                            onShowPreview?.(message.suggestion)
+                                                        }}
+                                                        disabled={isApplyingSuggestion}
+                                                        className={`flex items-center px-3 py-1.5 text-sm rounded-lg transition-colors ${isApplyingSuggestion
+                                                            ? 'bg-blue-400 text-white cursor-not-allowed'
+                                                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                                                            }`}
+                                                    >
+                                                        <Eye className="w-4 h-4 mr-1" />
+                                                        Предварительный просмотр
+                                                    </button>
+                                                    <button
                                                         onClick={handleApplySuggestion}
                                                         disabled={isApplyingSuggestion}
                                                         className={`flex items-center px-3 py-1.5 text-sm rounded-lg transition-colors ${isApplyingSuggestion
@@ -456,6 +492,7 @@ export default function ChatPanel({ currentDocument, onDocumentUpdate }: ChatPan
                     </div>
                 )}
             </div>
+
         </div>
     )
 }
