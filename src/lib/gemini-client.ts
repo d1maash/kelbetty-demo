@@ -1,8 +1,18 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { processDocumentAi } from './document-ai'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 
-const MODEL_PRIORITY = ['gemini-2.5-flash', 'gemini-pro'] as const
+const ENV_MODEL_PRIORITY = process.env.GEMINI_MODEL_PRIORITY
+    ?.split(',')
+    .map(model => model.trim())
+    .filter(Boolean)
+
+const MODEL_PRIORITY = (
+    ENV_MODEL_PRIORITY && ENV_MODEL_PRIORITY.length > 0
+        ? ENV_MODEL_PRIORITY
+        : ['gemini-2.5-flash', 'gemini-pro']
+) as readonly string[]
 const JSON_MIME_TYPE = 'application/json'
 
 type DocumentInfo = { id: string; title: string; html: string; type: string }
@@ -10,8 +20,14 @@ type DocumentInfo = { id: string; title: string; html: string; type: string }
 async function generateModelResponse(prompt: string, modelOrder = MODEL_PRIORITY): Promise<string> {
     let lastError: unknown
 
-    for (const modelName of modelOrder) {
+    for (const rawModelName of modelOrder) {
+        const modelName = rawModelName.trim()
+        if (!modelName) {
+            continue
+        }
+
         try {
+            console.log(`Пробуем вызвать модель Gemini: ${modelName}`)
             const model = genAI.getGenerativeModel({
                 model: modelName,
                 generationConfig: { responseMimeType: JSON_MIME_TYPE }
@@ -38,12 +54,100 @@ async function generateModelResponse(prompt: string, modelOrder = MODEL_PRIORITY
     throw new Error('Не удалось получить ответ от моделей Gemini')
 }
 
+function tryLocalFallback(message: string, document: DocumentInfo): GeminiResponse | null {
+    try {
+        const localResult = processDocumentAi({
+            document: {
+                id: document.id,
+                title: document.title,
+                html: document.html,
+                type: document.type as any
+            },
+            message
+        })
+
+        if (localResult) {
+            return localResult
+        }
+    } catch (fallbackError) {
+        console.error('Ошибка локального fallback обработчика:', fallbackError)
+    }
+
+    return null
+}
+
 function sanitizeJsonPayload(raw: string): string {
     return raw
         .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
         .replace(/\r\n/g, '\n')
         .replace(/\r/g, '\n')
         .trim()
+}
+
+function escapeControlCharactersInStrings(json: string): string {
+    let result = ''
+    let inString = false
+    let isEscaped = false
+
+    for (let i = 0; i < json.length; i += 1) {
+        const char = json[i]
+
+        if (!inString) {
+            if (char === '"') {
+                inString = true
+            }
+            result += char
+            continue
+        }
+
+        if (isEscaped) {
+            result += char
+            isEscaped = false
+            continue
+        }
+
+        if (char === '\\') {
+            isEscaped = true
+            result += char
+            continue
+        }
+
+        if (char === '"') {
+            inString = false
+            result += char
+            continue
+        }
+
+        if (char === '\n') {
+            result += '\\n'
+            continue
+        }
+
+        if (char === '\t') {
+            result += '\\t'
+            continue
+        }
+
+        if (char === '\f') {
+            result += '\\f'
+            continue
+        }
+
+        if (char === '\b') {
+            result += '\\b'
+            continue
+        }
+
+        const code = char.charCodeAt(0)
+        if (code <= 0x1f) {
+            result += `\\u${code.toString(16).padStart(4, '0')}`
+            continue
+        }
+
+        result += char
+    }
+
+    return result
 }
 
 function attemptJsonRepairs(raw: string): string[] {
@@ -180,7 +284,8 @@ function parseGeminiJson(rawText: string, context?: ParseContext): GeminiRespons
     }
 
     const sanitized = sanitizeJsonPayload(jsonMatch[0])
-    const attempts = attemptJsonRepairs(sanitized)
+    const escapedSanitized = escapeControlCharactersInStrings(sanitized)
+    const attempts = attemptJsonRepairs(escapedSanitized)
 
     for (const candidate of attempts) {
         try {
@@ -281,6 +386,12 @@ ${firstChunk}
         }
     } catch (error) {
         console.error('Ошибка при обработке большого документа:', error)
+
+        const fallback = tryLocalFallback(message, document)
+        if (fallback) {
+            return fallback
+        }
+
         return {
             response: 'Документ слишком большой для обработки. Попробуйте разбить его на части или использовать более простой запрос.'
         }
@@ -367,6 +478,11 @@ ${document.html}
 
     } catch (error) {
         console.error('Ошибка при обращении к Gemini API:', error)
+
+        const fallback = tryLocalFallback(message, document)
+        if (fallback) {
+            return fallback
+        }
 
         let errorMessage = 'Извините, произошла ошибка при обработке вашего запроса.'
 
