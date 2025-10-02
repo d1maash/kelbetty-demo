@@ -8,7 +8,7 @@ const prisma = new PrismaClient()
 
 export async function POST(req: NextRequest) {
     try {
-        console.log('=== НАЧАЛО ИМПОРТА ===')
+        console.log('=== БЫСТРЫЙ ИМПОРТ ===')
 
         const user = await getCurrentUser()
 
@@ -30,18 +30,16 @@ export async function POST(req: NextRequest) {
         const extension = file.name.split('.').pop()?.toLowerCase()
         if (extension !== 'docx') {
             return NextResponse.json({
-                error: 'Поддерживаются только DOCX файлы для импорта с сохранением стилей'
+                error: 'Поддерживаются только DOCX файлы для быстрого импорта'
             }, { status: 400 })
         }
 
         // Читаем файл
         const arrayBuffer = await file.arrayBuffer()
         console.log('Размер файла:', arrayBuffer.byteLength, 'байт')
-        console.log('Тип файла:', file.type)
-        console.log('Имя файла:', file.name)
 
-        // Конвертируем DOCX в HTML с сохранением стилей
-        console.log('Начинаем конвертацию с сохранением стилей...')
+        // Быстрая конвертация с сохранением стилей
+        console.log('Начинаем быструю конвертацию с сохранением стилей...')
 
         // Используем нашу улучшенную функцию конвертации
         const result = await convertDocxToHtmlWithStyles(arrayBuffer, {
@@ -54,7 +52,7 @@ export async function POST(req: NextRequest) {
             })
         })
 
-        console.log('Конвертация завершена успешно!')
+        console.log('Конвертация завершена!')
         console.log('Длина HTML:', result.html.length, 'символов')
         console.log('Количество предупреждений:', result.warnings.length)
         console.log('Исходный HTML (первые 1000 символов):', result.html.substring(0, 1000))
@@ -77,7 +75,7 @@ export async function POST(req: NextRequest) {
         })
 
         console.log('Документ сохранен в БД:', document.id)
-        console.log('=== ИМПОРТ ЗАВЕРШЕН УСПЕШНО ===')
+        console.log('=== БЫСТРЫЙ ИМПОРТ ЗАВЕРШЕН ===')
 
         return NextResponse.json({
             success: true,
@@ -93,10 +91,9 @@ export async function POST(req: NextRequest) {
         })
 
     } catch (error) {
-        console.error('Ошибка при импорте документа:', error)
+        console.error('Ошибка при быстром импорте документа:', error)
 
-        // Более детальная обработка ошибок
-        let errorMessage = 'Ошибка импорта документа'
+        let errorMessage = 'Ошибка быстрого импорта документа'
         if (error instanceof Error) {
             if (error.message.includes('Could not find file')) {
                 errorMessage = 'Не удалось прочитать DOCX файл. Убедитесь, что файл не поврежден.'

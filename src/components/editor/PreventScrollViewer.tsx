@@ -103,11 +103,11 @@ export default function PreventScrollViewer({ document, onSave }: PreventScrollV
             window.removeEventListener('touchmove', handleTouchMove)
             window.removeEventListener('keydown', handleKeyDown)
 
-            if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') {
-                document.removeEventListener('scroll', handleScroll)
-                document.removeEventListener('wheel', handleWheel)
-                document.removeEventListener('touchmove', handleTouchMove)
-                document.removeEventListener('keydown', handleKeyDown)
+            if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
+                window.document.removeEventListener('scroll', handleScroll)
+                window.document.removeEventListener('wheel', handleWheel)
+                window.document.removeEventListener('touchmove', handleTouchMove)
+                window.document.removeEventListener('keydown', handleKeyDown)
             }
 
             // Очищаем интервал

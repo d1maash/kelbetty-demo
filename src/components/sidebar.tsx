@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { FileText, Upload, Plus, Search, MoreVertical, Trash2, Download, AlertCircle, Sparkles } from 'lucide-react'
 import { formatFileSize } from '@/lib/utils'
 import Link from 'next/link'
+import ImportModal from '@/components/import/ImportModal'
 
 interface Document {
     id: string
@@ -22,11 +23,13 @@ interface SidebarProps {
     onFileUpload: (file: File) => void
     onDocumentSelect: (document: Document) => void
     onDeleteDocument: (documentId: string) => void
+    onDocumentLoaded?: (loaded: any) => void
 }
 
-export default function Sidebar({ currentDocument, documents, onFileUpload, onDocumentSelect, onDeleteDocument }: SidebarProps) {
+export default function Sidebar({ currentDocument, documents, onFileUpload, onDocumentSelect, onDeleteDocument, onDocumentLoaded }: SidebarProps) {
     const [searchQuery, setSearchQuery] = useState('')
     const [uploadError, setUploadError] = useState<string | null>(null)
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     const validateFile = (file: File): { valid: boolean; error?: string } => {
@@ -128,6 +131,22 @@ export default function Sidebar({ currentDocument, documents, onFileUpload, onDo
         setUploadError(null)
     }
 
+    const handleImportSuccess = (result: any) => {
+        // Закрываем модальное окно после успешного импорта
+        setIsImportModalOpen(false)
+
+        // Передаем информацию о загруженном документе в основное приложение
+        if (onDocumentLoaded && result.document) {
+            onDocumentLoaded({
+                mode: 'advanced',
+                document: result.document,
+                warnings: result.warnings
+            })
+        }
+
+        console.log('Импорт завершен:', result)
+    }
+
     return (
         <div className="bg-white border-r border-slate-200 flex flex-col h-full overflow-hidden">
             {/* Header */}
@@ -148,7 +167,7 @@ export default function Sidebar({ currentDocument, documents, onFileUpload, onDo
                             Создать
                         </button>
                         <button
-                            onClick={() => fileInputRef.current?.click()}
+                            onClick={() => setIsImportModalOpen(true)}
                             className="flex-1 flex items-center justify-center px-3 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
                         >
                             <Upload className="w-4 h-4 mr-1" />
@@ -156,14 +175,6 @@ export default function Sidebar({ currentDocument, documents, onFileUpload, onDo
                         </button>
                     </div>
 
-                    {/* Advanced Import Link */}
-                    <Link
-                        href="/test-import-advanced"
-                        className="flex items-center justify-center px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-blue-700 transition-all"
-                    >
-                        <Sparkles className="w-4 h-4 mr-1" />
-                        Тест импорта
-                    </Link>
                 </div>
 
                 {/* Search */}
@@ -279,6 +290,13 @@ export default function Sidebar({ currentDocument, documents, onFileUpload, onDo
                     </button>
                 </div>
             </div>
+
+            {/* Import Modal */}
+            <ImportModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onImportSuccess={handleImportSuccess}
+            />
         </div>
     )
 }

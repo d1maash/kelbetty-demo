@@ -1,0 +1,379 @@
+/* Стили для быстрого импорта с максимальным сохранением форматирования */
+
+.fast-import-document {
+    /* Базовые стили */
+    font-family: 'Times New Roman', serif;
+    line-height: 1.6;
+    color: #333;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    background: white;
+}
+
+/* КРИТИЧНО: Inline стили имеют высший приоритет */
+.fast-import-document *[style] {
+    /* Не переопределяем inline стили - они важнее всего */
+}
+
+/* Заголовки - только если НЕТ inline стилей */
+.fast-import-document h1:not([style]) {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 24px 0 12px 0;
+    color: #1e293b;
+}
+
+.fast-import-document h2:not([style]) {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 20px 0 10px 0;
+    color: #1e293b;
+}
+
+.fast-import-document h3:not([style]) {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 16px 0 8px 0;
+    color: #1e293b;
+}
+
+.fast-import-document h4:not([style]) {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 14px 0 6px 0;
+    color: #1e293b;
+}
+
+.fast-import-document h5:not([style]) {
+    font-size: 16px;
+    font-weight: bold;
+    margin: 12px 0 4px 0;
+    color: #1e293b;
+}
+
+.fast-import-document h6:not([style]) {
+    font-size: 14px;
+    font-weight: bold;
+    margin: 10px 0 4px 0;
+    color: #1e293b;
+}
+
+/* Параграфы - только если НЕТ inline стилей */
+.fast-import-document p:not([style]) {
+    margin: 0 0 16px 0;
+    line-height: 1.6;
+    text-align: justify;
+}
+
+/* Списки - только если НЕТ inline стилей */
+.fast-import-document ul:not([style]),
+.fast-import-document ol:not([style]) {
+    margin: 16px 0;
+    padding-left: 24px;
+}
+
+.fast-import-document li:not([style]) {
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+
+/* Таблицы - только если НЕТ inline стилей */
+.fast-import-document table:not([style]) {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 20px 0;
+    border: 1px solid #e2e8f0;
+}
+
+.fast-import-document th:not([style]),
+.fast-import-document td:not([style]) {
+    border: 1px solid #e2e8f0;
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.fast-import-document th:not([style]) {
+    background-color: #f8fafc;
+    font-weight: bold;
+}
+
+/* Форматирование текста */
+.fast-import-document strong,
+.fast-import-document b {
+    font-weight: bold;
+}
+
+.fast-import-document em,
+.fast-import-document i {
+    font-style: italic;
+}
+
+.fast-import-document u {
+    text-decoration: underline;
+}
+
+.fast-import-document del,
+.fast-import-document s {
+    text-decoration: line-through;
+}
+
+/* Изображения */
+.fast-import-document img {
+    max-width: 100%;
+    height: auto;
+    margin: 16px 0;
+    display: block;
+}
+
+/* Специальные стили для Word документов */
+.fast-import-document .MsoNormal {
+    margin: 0;
+    line-height: 1.6;
+}
+
+.fast-import-document .MsoListParagraph {
+    margin: 0;
+    text-indent: 0;
+}
+
+/* Стили для таблиц Word */
+.fast-import-document .MsoTableGrid {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.fast-import-document .MsoTableGrid td,
+.fast-import-document .MsoTableGrid th {
+    border: 1px solid #000;
+    padding: 4px 8px;
+}
+
+/* Стили для заголовков Word */
+.fast-import-document .MsoHeading1 {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 24px 0 12px 0;
+    color: #1e293b;
+}
+
+.fast-import-document .MsoHeading2 {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 20px 0 10px 0;
+    color: #1e293b;
+}
+
+.fast-import-document .MsoHeading3 {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 16px 0 8px 0;
+    color: #1e293b;
+}
+
+/* Стили для списков Word */
+.fast-import-document .MsoListBullet {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.fast-import-document .MsoListNumber {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+/* Стили для отступов Word */
+.fast-import-document .MsoIndent1 {
+    margin-left: 24px;
+}
+
+.fast-import-document .MsoIndent2 {
+    margin-left: 48px;
+}
+
+.fast-import-document .MsoIndent3 {
+    margin-left: 72px;
+}
+
+.fast-import-document .MsoIndent4 {
+    margin-left: 96px;
+}
+
+/* Стили для выравнивания Word */
+.fast-import-document .MsoAlignLeft {
+    text-align: left;
+}
+
+.fast-import-document .MsoAlignCenter {
+    text-align: center;
+}
+
+.fast-import-document .MsoAlignRight {
+    text-align: right;
+}
+
+.fast-import-document .MsoAlignJustify {
+    text-align: justify;
+}
+
+/* Стили для размеров шрифтов Word */
+.fast-import-document .MsoFontSize8 {
+    font-size: 8px;
+}
+
+.fast-import-document .MsoFontSize9 {
+    font-size: 9px;
+}
+
+.fast-import-document .MsoFontSize10 {
+    font-size: 10px;
+}
+
+.fast-import-document .MsoFontSize11 {
+    font-size: 11px;
+}
+
+.fast-import-document .MsoFontSize12 {
+    font-size: 12px;
+}
+
+.fast-import-document .MsoFontSize14 {
+    font-size: 14px;
+}
+
+.fast-import-document .MsoFontSize16 {
+    font-size: 16px;
+}
+
+.fast-import-document .MsoFontSize18 {
+    font-size: 18px;
+}
+
+.fast-import-document .MsoFontSize20 {
+    font-size: 20px;
+}
+
+.fast-import-document .MsoFontSize22 {
+    font-size: 22px;
+}
+
+.fast-import-document .MsoFontSize24 {
+    font-size: 24px;
+}
+
+.fast-import-document .MsoFontSize26 {
+    font-size: 26px;
+}
+
+.fast-import-document .MsoFontSize28 {
+    font-size: 28px;
+}
+
+.fast-import-document .MsoFontSize30 {
+    font-size: 30px;
+}
+
+.fast-import-document .MsoFontSize32 {
+    font-size: 32px;
+}
+
+.fast-import-document .MsoFontSize34 {
+    font-size: 34px;
+}
+
+.fast-import-document .MsoFontSize36 {
+    font-size: 36px;
+}
+
+/* Стили для цветов Word */
+.fast-import-document .MsoColorRed {
+    color: #dc2626;
+}
+
+.fast-import-document .MsoColorBlue {
+    color: #2563eb;
+}
+
+.fast-import-document .MsoColorGreen {
+    color: #16a34a;
+}
+
+.fast-import-document .MsoColorYellow {
+    color: #ca8a04;
+}
+
+.fast-import-document .MsoColorPurple {
+    color: #9333ea;
+}
+
+.fast-import-document .MsoColorOrange {
+    color: #ea580c;
+}
+
+.fast-import-document .MsoColorPink {
+    color: #ec4899;
+}
+
+.fast-import-document .MsoColorGray {
+    color: #6b7280;
+}
+
+.fast-import-document .MsoColorBlack {
+    color: #000000;
+}
+
+/* Стили для форматирования Word */
+.fast-import-document .MsoBold {
+    font-weight: bold;
+}
+
+.fast-import-document .MsoItalic {
+    font-style: italic;
+}
+
+.fast-import-document .MsoUnderline {
+    text-decoration: underline;
+}
+
+.fast-import-document .MsoStrike {
+    text-decoration: line-through;
+}
+
+/* Стили для отступов абзацев Word */
+.fast-import-document .MsoParaSpacing0 {
+    margin-bottom: 0;
+}
+
+.fast-import-document .MsoParaSpacing6 {
+    margin-bottom: 6px;
+}
+
+.fast-import-document .MsoParaSpacing12 {
+    margin-bottom: 12px;
+}
+
+.fast-import-document .MsoParaSpacing18 {
+    margin-bottom: 18px;
+}
+
+.fast-import-document .MsoParaSpacing24 {
+    margin-bottom: 24px;
+}
+
+/* Стили для межстрочного интервала Word */
+.fast-import-document .MsoLineHeight100 {
+    line-height: 1.0;
+}
+
+.fast-import-document .MsoLineHeight115 {
+    line-height: 1.15;
+}
+
+.fast-import-document .MsoLineHeight150 {
+    line-height: 1.5;
+}
+
+.fast-import-document .MsoLineHeight200 {
+    line-height: 2.0;
+}

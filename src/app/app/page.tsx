@@ -146,6 +146,7 @@ export default function AppPage() {
                     onFileUpload={handleFileUpload}
                     onDocumentSelect={handleDocumentSelect}
                     onDeleteDocument={deleteDocument}
+                    onDocumentLoaded={handleDocumentLoaded}
                 />
             </aside>
 

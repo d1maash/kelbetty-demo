@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Download, FileText, Loader2, AlertCircle, Save, Edit3, X } from 'lucide-react'
 import { toast } from 'sonner'
+import '@/styles/fast-import.css'
 
 interface ImportedDocumentViewerProps {
     document: {
@@ -311,7 +312,7 @@ export default function ImportedDocumentViewer({
                 <div className="max-w-4xl mx-auto p-8">
                     <div
                         ref={editorRef}
-                        className={`document-viewer min-h-full bg-white shadow-sm border border-slate-200 rounded-lg p-8 ${isEditing ? 'outline-none' : ''
+                        className={`fast-import-document min-h-full bg-white shadow-sm border border-slate-200 rounded-lg p-8 ${isEditing ? 'outline-none' : ''
                             }`}
                         contentEditable={isEditing}
                         suppressContentEditableWarning={true}

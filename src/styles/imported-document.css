@@ -1,0 +1,410 @@
+/* Стили для импортированных документов с максимальным сохранением форматирования */
+
+.imported-document {
+    /* Базовые стили */
+    font-family: 'Times New Roman', serif;
+    line-height: 1.6;
+    color: #333;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    background: white;
+}
+
+/* Приоритет для inline стилей - они не должны переопределяться */
+.imported-document *[style] {
+    /* Inline стили имеют высший приоритет */
+}
+
+/* Заголовки - только если нет inline стилей */
+.imported-document h1:not([style]) {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 24px 0 12px 0;
+    color: #1e293b;
+}
+
+.imported-document h2:not([style]) {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 20px 0 10px 0;
+    color: #1e293b;
+}
+
+.imported-document h3:not([style]) {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 16px 0 8px 0;
+    color: #1e293b;
+}
+
+.imported-document h4:not([style]) {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 14px 0 6px 0;
+    color: #1e293b;
+}
+
+.imported-document h5:not([style]) {
+    font-size: 16px;
+    font-weight: bold;
+    margin: 12px 0 4px 0;
+    color: #1e293b;
+}
+
+.imported-document h6:not([style]) {
+    font-size: 14px;
+    font-weight: bold;
+    margin: 10px 0 4px 0;
+    color: #1e293b;
+}
+
+/* Параграфы - только если нет inline стилей */
+.imported-document p:not([style]) {
+    margin: 0 0 16px 0;
+    line-height: 1.6;
+    text-align: justify;
+}
+
+/* Списки - только если нет inline стилей */
+.imported-document ul:not([style]),
+.imported-document ol:not([style]) {
+    margin: 16px 0;
+    padding-left: 24px;
+}
+
+.imported-document li:not([style]) {
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+
+/* Таблицы - только если нет inline стилей */
+.imported-document table:not([style]) {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 20px 0;
+    border: 1px solid #e2e8f0;
+}
+
+.imported-document th:not([style]),
+.imported-document td:not([style]) {
+    border: 1px solid #e2e8f0;
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.imported-document th:not([style]) {
+    background-color: #f8fafc;
+    font-weight: bold;
+}
+
+/* Форматирование текста */
+.imported-document strong,
+.imported-document b {
+    font-weight: bold;
+}
+
+.imported-document em,
+.imported-document i {
+    font-style: italic;
+}
+
+.imported-document u {
+    text-decoration: underline;
+}
+
+.imported-document del,
+.imported-document s {
+    text-decoration: line-through;
+}
+
+/* Изображения */
+.imported-document img {
+    max-width: 100%;
+    height: auto;
+    margin: 16px 0;
+    display: block;
+}
+
+/* Цитаты */
+.imported-document blockquote {
+    margin: 20px 0;
+    padding-left: 20px;
+    border-left: 4px solid #e2e8f0;
+    font-style: italic;
+    color: #64748b;
+}
+
+/* Код */
+.imported-document code {
+    background-color: #f1f5f9;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.imported-document pre {
+    background-color: #f1f5f9;
+    padding: 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 16px 0;
+}
+
+.imported-document pre code {
+    background: none;
+    padding: 0;
+}
+
+/* Специальные стили для Word документов */
+.imported-document .MsoNormal {
+    margin: 0;
+    line-height: 1.6;
+}
+
+.imported-document .MsoListParagraph {
+    margin: 0;
+    text-indent: 0;
+}
+
+/* Стили для таблиц Word */
+.imported-document .MsoTableGrid {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.imported-document .MsoTableGrid td,
+.imported-document .MsoTableGrid th {
+    border: 1px solid #000;
+    padding: 4px 8px;
+}
+
+/* Стили для заголовков Word */
+.imported-document .MsoHeading1 {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 24px 0 12px 0;
+    color: #1e293b;
+}
+
+.imported-document .MsoHeading2 {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 20px 0 10px 0;
+    color: #1e293b;
+}
+
+.imported-document .MsoHeading3 {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 16px 0 8px 0;
+    color: #1e293b;
+}
+
+/* Стили для списков Word */
+.imported-document .MsoListBullet {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.imported-document .MsoListNumber {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+/* Стили для отступов Word */
+.imported-document .MsoIndent1 {
+    margin-left: 24px;
+}
+
+.imported-document .MsoIndent2 {
+    margin-left: 48px;
+}
+
+.imported-document .MsoIndent3 {
+    margin-left: 72px;
+}
+
+.imported-document .MsoIndent4 {
+    margin-left: 96px;
+}
+
+/* Стили для выравнивания Word */
+.imported-document .MsoAlignLeft {
+    text-align: left;
+}
+
+.imported-document .MsoAlignCenter {
+    text-align: center;
+}
+
+.imported-document .MsoAlignRight {
+    text-align: right;
+}
+
+.imported-document .MsoAlignJustify {
+    text-align: justify;
+}
+
+/* Стили для размеров шрифтов Word */
+.imported-document .MsoFontSize8 {
+    font-size: 8px;
+}
+
+.imported-document .MsoFontSize9 {
+    font-size: 9px;
+}
+
+.imported-document .MsoFontSize10 {
+    font-size: 10px;
+}
+
+.imported-document .MsoFontSize11 {
+    font-size: 11px;
+}
+
+.imported-document .MsoFontSize12 {
+    font-size: 12px;
+}
+
+.imported-document .MsoFontSize14 {
+    font-size: 14px;
+}
+
+.imported-document .MsoFontSize16 {
+    font-size: 16px;
+}
+
+.imported-document .MsoFontSize18 {
+    font-size: 18px;
+}
+
+.imported-document .MsoFontSize20 {
+    font-size: 20px;
+}
+
+.imported-document .MsoFontSize22 {
+    font-size: 22px;
+}
+
+.imported-document .MsoFontSize24 {
+    font-size: 24px;
+}
+
+.imported-document .MsoFontSize26 {
+    font-size: 26px;
+}
+
+.imported-document .MsoFontSize28 {
+    font-size: 28px;
+}
+
+.imported-document .MsoFontSize30 {
+    font-size: 30px;
+}
+
+.imported-document .MsoFontSize32 {
+    font-size: 32px;
+}
+
+.imported-document .MsoFontSize34 {
+    font-size: 34px;
+}
+
+.imported-document .MsoFontSize36 {
+    font-size: 36px;
+}
+
+/* Стили для цветов Word */
+.imported-document .MsoColorRed {
+    color: #dc2626;
+}
+
+.imported-document .MsoColorBlue {
+    color: #2563eb;
+}
+
+.imported-document .MsoColorGreen {
+    color: #16a34a;
+}
+
+.imported-document .MsoColorYellow {
+    color: #ca8a04;
+}
+
+.imported-document .MsoColorPurple {
+    color: #9333ea;
+}
+
+.imported-document .MsoColorOrange {
+    color: #ea580c;
+}
+
+.imported-document .MsoColorPink {
+    color: #ec4899;
+}
+
+.imported-document .MsoColorGray {
+    color: #6b7280;
+}
+
+.imported-document .MsoColorBlack {
+    color: #000000;
+}
+
+/* Стили для форматирования Word */
+.imported-document .MsoBold {
+    font-weight: bold;
+}
+
+.imported-document .MsoItalic {
+    font-style: italic;
+}
+
+.imported-document .MsoUnderline {
+    text-decoration: underline;
+}
+
+.imported-document .MsoStrike {
+    text-decoration: line-through;
+}
+
+/* Стили для отступов абзацев Word */
+.imported-document .MsoParaSpacing0 {
+    margin-bottom: 0;
+}
+
+.imported-document .MsoParaSpacing6 {
+    margin-bottom: 6px;
+}
+
+.imported-document .MsoParaSpacing12 {
+    margin-bottom: 12px;
+}
+
+.imported-document .MsoParaSpacing18 {
+    margin-bottom: 18px;
+}
+
+.imported-document .MsoParaSpacing24 {
+    margin-bottom: 24px;
+}
+
+/* Стили для межстрочного интервала Word */
+.imported-document .MsoLineHeight100 {
+    line-height: 1.0;
+}
+
+.imported-document .MsoLineHeight115 {
+    line-height: 1.15;
+}
+
+.imported-document .MsoLineHeight150 {
+    line-height: 1.5;
+}
+
+.imported-document .MsoLineHeight200 {
+    line-height: 2.0;
+}

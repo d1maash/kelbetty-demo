@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Download, FileText, Save, Edit3, ArrowUp, X } from 'lucide-react'
 import { toast } from 'sonner'
+import '@/styles/fast-import.css'
 
 interface StyledDocumentViewerProps {
     document: {
@@ -55,40 +56,33 @@ export default function StyledDocumentViewer({
             const tempDiv = window.document.createElement('div')
             tempDiv.innerHTML = document.html
 
-            // Применяем стили к временному контейнеру
+            // Сохраняем все inline стили без переопределения
             const elements = tempDiv.querySelectorAll('*[style]')
             elements.forEach((element: any) => {
                 const style = element.getAttribute('style')
                 if (style) {
-                    const styles = style.split(';').filter(s => s.trim())
-                    styles.forEach(styleRule => {
-                        if (styleRule.trim()) {
-                            const [property, value] = styleRule.split(':').map(s => s.trim())
-                            if (property && value) {
-                                element.style.setProperty(property, value, 'important')
-                            }
-                        }
-                    })
+                    // Просто сохраняем оригинальные стили без изменений
+                    element.style.cssText = style
                 }
             })
 
-            // Применяем стили для заголовков и параграфов
+            // Применяем базовые стили только для элементов без inline стилей
             const headings = tempDiv.querySelectorAll('h1, h2, h3, h4, h5, h6')
             headings.forEach((heading: any) => {
                 if (!heading.getAttribute('style')) {
                     const level = parseInt(heading.tagName.charAt(1))
                     const fontSize = 24 - (level - 1) * 2
-                    heading.style.setProperty('font-size', `${fontSize}pt`, 'important')
-                    heading.style.setProperty('font-weight', 'bold', 'important')
-                    heading.style.setProperty('margin', `${16 - level * 2}pt 0 ${8 - level}pt 0`, 'important')
+                    heading.style.fontSize = `${fontSize}pt`
+                    heading.style.fontWeight = 'bold'
+                    heading.style.margin = `${16 - level * 2}pt 0 ${8 - level}pt 0`
                 }
             })
 
             const paragraphs = tempDiv.querySelectorAll('p')
             paragraphs.forEach((p: any) => {
                 if (!p.getAttribute('style')) {
-                    p.style.setProperty('margin', '0 0 6pt 0', 'important')
-                    p.style.setProperty('line-height', '1.15', 'important')
+                    p.style.margin = '0 0 6pt 0'
+                    p.style.lineHeight = '1.15'
                 }
             })
 
@@ -345,7 +339,7 @@ export default function StyledDocumentViewer({
                 <div className="max-w-4xl mx-auto p-8">
                     <div
                         ref={editorRef}
-                        className={`document-viewer min-h-full bg-white shadow-sm border border-slate-200 rounded-lg p-8 ${isEditing ? 'outline-none' : ''
+                        className={`fast-import-document min-h-full bg-white shadow-sm border border-slate-200 rounded-lg p-8 ${isEditing ? 'outline-none' : ''
                             }`}
                         contentEditable={isEditing}
                         suppressContentEditableWarning={true}

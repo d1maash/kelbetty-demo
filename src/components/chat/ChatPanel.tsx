@@ -299,8 +299,8 @@ export default function ChatPanel({ currentDocument, onDocumentUpdate, onRealtim
             onRealtimeEdit(inputValue)
             setInputValue('')
         } else {
-            setRealtimeMessage(inputValue)
-            setShowRealtimeEditor(true)
+            // Fallback для случая когда onRealtimeEdit не определен
+            console.log('Realtime editing not available')
             setInputValue('')
         }
     }

@@ -35,6 +35,7 @@ export default function ImportDropzone({
     const [progress, setProgress] = useState(0)
     const [importMode, setImportMode] = useState<'standard' | 'advanced'>('standard')
     const [importResult, setImportResult] = useState<ImportResult | null>(null)
+    const [abortController, setAbortController] = useState<AbortController | null>(null)
 
     async function handleFiles(files: FileList | null) {
         if (!files?.[0]) return
@@ -42,6 +43,18 @@ export default function ImportDropzone({
         console.log('Загружаем файл:', file.name, file.size, file.type)
 
         const ext = (file.name.split('.').pop() || '').toLowerCase()
+
+        // Проверяем размер файла
+        const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+        if (file.size > MAX_FILE_SIZE) {
+            toast.error(`Файл слишком большой (${Math.round(file.size / 1024 / 1024)}MB). Максимальный размер: 50MB`)
+            return
+        }
+
+        // Предупреждение для больших файлов
+        if (file.size > 10 * 1024 * 1024) { // 10MB
+            toast.info(`Большой файл (${Math.round(file.size / 1024 / 1024)}MB). Обработка может занять до 30 секунд.`)
+        }
 
         // Проверяем поддерживаемые форматы в зависимости от режима
         if (importMode === 'advanced') {
@@ -72,35 +85,71 @@ export default function ImportDropzone({
                 setStatus('processing')
 
                 const controller = new AbortController()
-                const timeoutId = setTimeout(() => controller.abort(), 60000)
+                setAbortController(controller)
 
-                const response = await fetch('/api/import', {
-                    method: 'POST',
-                    body: formData,
-                    signal: controller.signal
-                })
+                // Добавляем промежуточные обновления прогресса
+                const progressInterval = setInterval(() => {
+                    setProgress(prev => {
+                        if (prev < 90) {
+                            return prev + 3 // Быстрее для простого импорта
+                        }
+                        return prev
+                    })
+                }, 1000) // Обновляем каждую секунду
 
-                clearTimeout(timeoutId)
-                setProgress(70)
+                const timeoutId = setTimeout(() => {
+                    console.log('Таймаут запроса, прерываем...')
+                    clearInterval(progressInterval)
+                    controller.abort()
+                }, 120000) // Увеличиваем таймаут до 2 минут для сложных документов
 
-                const result = await response.json()
+                try {
+                    console.log('Отправляем запрос на /api/import-simple...')
 
-                if (!response.ok) {
-                    throw new Error(result.error || 'Ошибка импорта')
-                }
+                    // Добавляем заголовки для лучшей совместимости
+                    const response = await fetch('/api/import-simple', {
+                        method: 'POST',
+                        body: formData,
+                        signal: controller.signal,
+                        headers: {
+                            'Accept': 'application/json',
+                        }
+                    })
 
-                setProgress(100)
-                setStatus('ready')
-                setImportResult(result)
+                    clearTimeout(timeoutId)
+                    clearInterval(progressInterval)
+                    setProgress(70)
 
-                toast.success(`Документ "${file.name}" успешно импортирован с сохранением стилей!`)
+                    console.log('Получен ответ:', response.status, response.statusText)
 
-                if (onImportSuccess) {
-                    onImportSuccess(result)
-                }
+                    if (!response.ok) {
+                        const errorText = await response.text()
+                        console.error('Ошибка ответа:', errorText)
+                        throw new Error(`HTTP ${response.status}: ${errorText}`)
+                    }
 
-                if (onLoaded) {
-                    onLoaded({ mode: 'advanced', document: result.document, warnings: result.warnings })
+                    const result = await response.json()
+                    console.log('Результат импорта:', result)
+
+                    setProgress(100)
+                    setStatus('ready')
+                    setImportResult(result)
+
+                    toast.success(`Документ "${file.name}" успешно импортирован с сохранением стилей!`)
+
+                    if (onImportSuccess) {
+                        onImportSuccess(result)
+                    }
+
+                    if (onLoaded) {
+                        onLoaded({ mode: 'advanced', document: result.document, warnings: result.warnings })
+                    }
+                } catch (fetchError) {
+                    clearTimeout(timeoutId)
+                    clearInterval(progressInterval)
+                    setAbortController(null)
+                    console.error('Ошибка fetch:', fetchError)
+                    throw fetchError
                 }
             } else {
                 // Стандартный импорт
@@ -179,8 +228,15 @@ export default function ImportDropzone({
         } catch (e: any) {
             console.error('Ошибка импорта:', e)
             setStatus('error')
+            setProgress(0)
+            setAbortController(null)
+
             if (e.name === 'AbortError') {
-                toast.error('Таймаут загрузки. Файл слишком большой или сервер не отвечает.')
+                toast.error('Импорт отменен пользователем.')
+            } else if (e.message?.includes('HTTP 500')) {
+                toast.error('Ошибка сервера при обработке файла. Попробуйте другой файл.')
+            } else if (e.message?.includes('HTTP 400')) {
+                toast.error('Неподдерживаемый формат файла или файл поврежден.')
             } else {
                 toast.error(e?.message ?? 'Импорт не удался')
             }
@@ -207,6 +263,17 @@ export default function ImportDropzone({
         setStatus('idle')
         setProgress(0)
         setImportResult(null)
+        setAbortController(null)
+    }
+
+    const cancelImport = () => {
+        if (abortController) {
+            abortController.abort()
+            setAbortController(null)
+        }
+        setStatus('idle')
+        setProgress(0)
+        toast.info('Импорт отменен')
     }
 
     return (
@@ -221,8 +288,8 @@ export default function ImportDropzone({
                     <button
                         onClick={() => setImportMode('standard')}
                         className={`px-3 py-1 text-sm rounded-md transition-colors ${importMode === 'standard'
-                                ? 'bg-white text-slate-900 shadow-sm'
-                                : 'text-slate-600 hover:text-slate-900'
+                            ? 'bg-white text-slate-900 shadow-sm'
+                            : 'text-slate-600 hover:text-slate-900'
                             }`}
                     >
                         Стандартный
@@ -230,8 +297,8 @@ export default function ImportDropzone({
                     <button
                         onClick={() => setImportMode('advanced')}
                         className={`px-3 py-1 text-sm rounded-md transition-colors ${importMode === 'advanced'
-                                ? 'bg-white text-slate-900 shadow-sm'
-                                : 'text-slate-600 hover:text-slate-900'
+                            ? 'bg-white text-slate-900 shadow-sm'
+                            : 'text-slate-600 hover:text-slate-900'
                             }`}
                     >
                         С сохранением стилей
@@ -278,7 +345,11 @@ export default function ImportDropzone({
                         <Loader2 className="w-12 h-12 mx-auto mb-4 text-blue-600 animate-spin" />
                         <h3 className="text-lg font-semibold text-slate-900 mb-2">Обработка документа</h3>
                         <p className="text-sm text-slate-600 mb-4">
-                            Извлекаем стили и форматирование...
+                            {progress < 20 ? 'Подготавливаем файл к отправке...' :
+                                progress < 40 ? 'Загружаем файл на сервер...' :
+                                    progress < 60 ? 'Извлекаем стили и форматирование...' :
+                                        progress < 80 ? 'Обрабатываем содержимое документа...' :
+                                            'Сохраняем документ в базе данных...'}
                         </p>
                         <div className="w-full bg-slate-200 rounded-full h-2 mb-4">
                             <div
@@ -286,6 +357,15 @@ export default function ImportDropzone({
                                 style={{ width: `${progress}%` }}
                             />
                         </div>
+                        <p className="text-xs text-slate-500 mb-3">
+                            Прогресс: {progress}% • Обычно занимает 5-15 секунд
+                        </p>
+                        <button
+                            onClick={cancelImport}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                        >
+                            Отменить импорт
+                        </button>
                     </>
                 )}
 

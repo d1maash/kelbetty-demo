@@ -1,28 +1,110 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenerativeAI, GoogleGenerativeAIFetchError } from '@google/generative-ai'
 import { processDocumentAi } from './document-ai'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
+
+const DEFAULT_MODEL_PRIORITY = ['gemini-2.5-flash', 'gemini-1.5-flash'] as const
+
+const MODEL_ALIAS_MAP: Record<string, string> = {
+    'gemini-pro': 'gemini-2.5-flash',
+    'gemini-pro-latest': 'gemini-2.5-flash',
+    'gemini-pro-vision': 'gemini-2.5-flash',
+    'gemini-pro-vision-latest': 'gemini-2.5-flash',
+    'gemini-1.0-pro': 'gemini-2.5-flash',
+    'gemini-1.0-pro-latest': 'gemini-2.5-flash'
+}
+
+const deprecatedModelWarnings = new Set<string>()
+const invalidModelCache = new Set<string>()
+const invalidModelWarnings = new Set<string>()
+
+function normalizeModelName(rawModel: string): string | null {
+    const trimmed = rawModel.trim()
+    if (!trimmed) {
+        return null
+    }
+
+    const withoutPrefix = trimmed.replace(/^models\//i, '')
+    const canonical = withoutPrefix.toLowerCase()
+
+    const aliasTarget = MODEL_ALIAS_MAP[canonical]
+    if (aliasTarget) {
+        if (!deprecatedModelWarnings.has(canonical)) {
+            console.warn(`Модель Gemini ${canonical} устарела, используем ${aliasTarget}.`)
+            deprecatedModelWarnings.add(canonical)
+        }
+        return aliasTarget
+    }
+
+    return canonical
+}
+
+function resolveModelPriority(candidateOrder: readonly string[]): readonly string[] {
+    const resolved: string[] = []
+    const seen = new Set<string>()
+
+    for (const candidate of candidateOrder) {
+        const normalized = typeof candidate === 'string' ? normalizeModelName(candidate) : null
+        if (!normalized || seen.has(normalized)) {
+            continue
+        }
+
+        resolved.push(normalized)
+        seen.add(normalized)
+    }
+
+    if (resolved.length === 0) {
+        if (candidateOrder === DEFAULT_MODEL_PRIORITY) {
+            return [...DEFAULT_MODEL_PRIORITY]
+        }
+        return resolveModelPriority(DEFAULT_MODEL_PRIORITY)
+    }
+
+    return resolved
+}
 
 const ENV_MODEL_PRIORITY = process.env.GEMINI_MODEL_PRIORITY
     ?.split(',')
     .map(model => model.trim())
     .filter(Boolean)
 
-const MODEL_PRIORITY = (
-    ENV_MODEL_PRIORITY && ENV_MODEL_PRIORITY.length > 0
-        ? ENV_MODEL_PRIORITY
-        : ['gemini-2.5-flash', 'gemini-pro']
+const MODEL_PRIORITY = Object.freeze(
+    resolveModelPriority(
+        ENV_MODEL_PRIORITY && ENV_MODEL_PRIORITY.length > 0
+            ? ENV_MODEL_PRIORITY
+            : DEFAULT_MODEL_PRIORITY
+    )
 ) as readonly string[]
 const JSON_MIME_TYPE = 'application/json'
+
+function isModelNotFoundError(error: unknown): boolean {
+    if (error instanceof GoogleGenerativeAIFetchError) {
+        return error.status === 404
+    }
+
+    if (error instanceof Error) {
+        return /not\s+found/i.test(error.message) || /404/.test(error.message)
+    }
+
+    return false
+}
 
 type DocumentInfo = { id: string; title: string; html: string; type: string }
 
 async function generateModelResponse(prompt: string, modelOrder = MODEL_PRIORITY): Promise<string> {
     let lastError: unknown
+    let encounteredNotFoundError = false
 
-    for (const rawModelName of modelOrder) {
-        const modelName = rawModelName.trim()
-        if (!modelName) {
+    const modelCandidates = modelOrder === MODEL_PRIORITY
+        ? modelOrder
+        : resolveModelPriority(modelOrder)
+
+    for (const modelName of modelCandidates) {
+        if (invalidModelCache.has(modelName)) {
+            if (!invalidModelWarnings.has(modelName)) {
+                console.warn(`Пропускаем модель Gemini ${modelName} — ранее помечена как недоступная.`)
+                invalidModelWarnings.add(modelName)
+            }
             continue
         }
 
@@ -43,12 +125,27 @@ async function generateModelResponse(prompt: string, modelOrder = MODEL_PRIORITY
             return responseText.trim()
         } catch (error) {
             console.error(`Ошибка при вызове модели ${modelName}:`, error)
+
+            if (isModelNotFoundError(error)) {
+                encounteredNotFoundError = true
+
+                if (!invalidModelCache.has(modelName)) {
+                    console.warn(`Модель Gemini ${modelName} недоступна (404). Убираем из очереди.`)
+                    invalidModelCache.add(modelName)
+                }
+                continue
+            }
+
             lastError = error
         }
     }
 
     if (lastError instanceof Error) {
         throw lastError
+    }
+
+    if (encounteredNotFoundError) {
+        throw new Error('Ни одна из указанных моделей Gemini не поддерживает generateContent. Обновите список моделей и используйте gemini-2.5-flash.')
     }
 
     throw new Error('Не удалось получить ответ от моделей Gemini')
@@ -324,76 +421,122 @@ function parseGeminiJson(rawText: string, context?: ParseContext): GeminiRespons
 async function processLargeDocument(message: string, document: DocumentInfo): Promise<GeminiResponse> {
     console.log('Обработка большого документа по частям...')
 
-    // Разбиваем HTML на части по 30000 символов
     const chunkSize = 30000
-    const htmlChunks = []
+    const htmlChunks: string[] = []
 
-    for (let i = 0; i < document.html.length; i += chunkSize) {
-        htmlChunks.push(document.html.substring(i, i + chunkSize))
+    for (let offset = 0; offset < document.html.length;) {
+        let end = Math.min(offset + chunkSize, document.html.length)
+
+        if (end < document.html.length) {
+            const safeBreak = document.html.lastIndexOf('>', end)
+            if (safeBreak > offset + Math.floor(chunkSize * 0.3)) {
+                end = safeBreak + 1
+            }
+        }
+
+        htmlChunks.push(document.html.slice(offset, end))
+        offset = end
     }
 
     console.log(`Документ разбит на ${htmlChunks.length} частей`)
 
-    // Обрабатываем первую часть для получения структуры ответа
-    const firstChunk = htmlChunks[0]
-    const prompt = `Ты - ИИ помощник для редактирования HTML документов.
+    const updatedChunks: string[] = []
+    const chunkResponses: string[] = []
+    const aggregatedChanges: GeminiResponse['suggestion']['patch']['changes'] = []
+
+    for (let index = 0; index < htmlChunks.length; index += 1) {
+        const chunk = htmlChunks[index]
+        const chunkPrompt = `Ты - ИИ помощник для редактирования HTML документов.
 
 ЗАДАЧА: Пользователь хочет изменить документ "${document.title}".
 
 ЗАПРОС: "${message}"
 
-ЧАСТЬ 1 из ${htmlChunks.length} HTML документа:
-${firstChunk}
+ЧАСТЬ ${index + 1} из ${htmlChunks.length} HTML документа (обработай только эту часть):
+${chunk}
 
-ВАЖНО: Это только первая часть документа. Обработай её и верни структуру ответа.
+ТВОЯ ЦЕЛЬ: верни обработанную версию этой части HTML.
 
 Верни ТОЛЬКО валидный JSON в одну строку:
 
-{"response": "Описание изменений", "suggestion": {"description": "Краткое описание", "preview": "Предпросмотр", "patch": {"type": "html_overwrite", "documentId": "${document.id}", "updatedHtml": "Обработанная часть HTML", "changes": [{"selector": "CSS селектор", "style": {"свойство": "значение"}, "summary": "Описание"}]}}}
+{"response": "Краткое описание изменений", "suggestion": {"description": "Краткое описание", "preview": "Предпросмотр", "patch": {"type": "html_overwrite", "documentId": "${document.id}", "updatedHtml": "Обновленный HTML этой части", "changes": [{"selector": "CSS селектор", "style": {"свойство": "значение"}, "summary": "Описание"}]}}}
 
 КРИТИЧЕСКИ ВАЖНО:
-- Обработай только эту часть документа
-- Отвечай ТОЛЬКО JSON в одну строку
-- НЕ используй переносы строк в JSON
-- Экранируй кавычки в HTML как \\"`
+- Сохраняй структуру HTML, обрабатывай только переданный фрагмент.
+- НЕ добавляй текст до или после фрагмента, просто трансформируй его.
+- Отвечай ТОЛЬКО JSON в одну строку без переносов.
+- Экранируй кавычки в HTML как \\".`
 
-    try {
-        const response = await generateModelResponse(prompt)
-        console.log('Ответ от Gemini для первой части:', response)
+        try {
+            const response = await generateModelResponse(chunkPrompt)
+            console.log(`Ответ от Gemini для части ${index + 1}:`, response)
 
-        const parsedResponse = parseGeminiJson(response, { documentId: document.id })
+            const parsed = parseGeminiJson(response, { documentId: document.id })
 
-        return {
-            response: `Обработка большого документа (${document.html.length} символов). ${
-                parsedResponse.response || 'Изменения будут применены ко всему документу.'
-            }`,
-            suggestion: {
-                description: 'Обработка большого документа',
-                preview: 'Документ будет обработан полностью',
-                patch: {
-                    type: 'html_overwrite',
-                    documentId: document.id,
-                    updatedHtml: document.html,
-                    changes: [
-                        {
-                            selector: 'body',
-                            style: {},
-                            summary: 'Обработка всего документа'
-                        }
-                    ]
-                }
+            if (parsed.response) {
+                chunkResponses.push(`Часть ${index + 1}: ${parsed.response}`)
             }
-        }
-    } catch (error) {
-        console.error('Ошибка при обработке большого документа:', error)
 
+            const chunkSuggestion = parsed.suggestion
+            const updatedChunk = chunkSuggestion?.patch?.updatedHtml
+            if (typeof updatedChunk === 'string' && updatedChunk.trim().length > 0) {
+                updatedChunks.push(updatedChunk)
+            } else {
+                console.warn(`Получен пустой результат для части ${index + 1}, используем оригинальный фрагмент.`)
+                updatedChunks.push(chunk)
+            }
+
+            if (chunkSuggestion?.patch?.changes?.length) {
+                aggregatedChanges.push(
+                    ...chunkSuggestion.patch.changes.map(change => ({
+                        ...change,
+                        summary: `${change.summary} (часть ${index + 1})`
+                    }))
+                )
+            }
+        } catch (chunkError) {
+            console.error(`Ошибка обработки части ${index + 1}:`, chunkError)
+            updatedChunks.push(chunk)
+        }
+    }
+
+    const combinedHtml = updatedChunks.join('')
+
+    if (!combinedHtml.trim()) {
+        console.warn('Комбинированный HTML пустой, возвращаем оригинальный документ.')
         const fallback = tryLocalFallback(message, document)
         if (fallback) {
             return fallback
         }
 
         return {
-            response: 'Документ слишком большой для обработки. Попробуйте разбить его на части или использовать более простой запрос.'
+            response: 'Не удалось обработать документ. Попробуйте повторить запрос позже.'
+        }
+    }
+
+    const summary = chunkResponses.length > 0
+        ? `Обработаны ${chunkResponses.length} частей. ${chunkResponses.join(' ')}`
+        : 'Документ обработан по частям.'
+
+    return {
+        response: summary,
+        suggestion: {
+            description: 'Обновление большого документа',
+            preview: `Документ разделен на ${htmlChunks.length} частей и обработан полностью`,
+            patch: {
+                type: 'html_overwrite',
+                documentId: document.id,
+                updatedHtml: combinedHtml,
+                changes: aggregatedChanges.length > 0
+                    ? aggregatedChanges
+                    : [
+                        {
+                            selector: 'body',
+                            style: {},
+                            summary: 'Обновление содержимого документа'
+                        }
+                    ]
+            }
         }
     }
 }
