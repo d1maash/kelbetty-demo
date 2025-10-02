@@ -57,6 +57,11 @@ export default function AppPage() {
         } else if (loaded.mode === 'fallback' && loaded.kind === 'pdf') {
             const file = new File([loaded.buf], loaded.title, { type: 'application/pdf' })
             importDocument(file)
+        } else if (loaded.mode === 'advanced' && loaded.document) {
+            // Продвинутый импорт - документ уже сохранен в БД
+            console.log('Продвинутый импорт завершен, документ:', loaded.document)
+            // Документ уже в БД, просто обновляем состояние
+            setDoc({ kind: 'none' })
         }
 
         if (loaded.mode === 'onlyoffice') {

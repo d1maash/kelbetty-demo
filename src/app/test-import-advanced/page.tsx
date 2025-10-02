@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import AdvancedImportDropzone from '@/components/import/AdvancedImportDropzone'
+import ImportDropzone from '@/components/import/ImportDropzone'
 import ImportedDocxEditor from '@/components/editor/ImportedDocxEditor'
 import { FileText, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
@@ -116,7 +116,18 @@ export default function TestImportAdvancedPage() {
                         </div>
 
                         {/* Import Component */}
-                        <AdvancedImportDropzone onImportSuccess={handleImportSuccess} />
+                        <ImportDropzone
+                            onImportSuccess={handleImportSuccess}
+                            onLoaded={(loaded) => {
+                                if (loaded.mode === 'advanced' && loaded.document) {
+                                    handleImportSuccess({
+                                        success: true,
+                                        document: loaded.document,
+                                        warnings: loaded.warnings
+                                    })
+                                }
+                            }}
+                        />
 
                         {/* Instructions */}
                         <div className="bg-slate-50 border border-slate-200 rounded-lg p-6">

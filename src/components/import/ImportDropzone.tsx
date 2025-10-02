@@ -2,15 +2,39 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Upload, FileText, AlertCircle } from 'lucide-react'
+import { Upload, FileText, AlertCircle, CheckCircle, Loader2, Settings } from 'lucide-react'
 
 type Loaded =
     | { mode: 'onlyoffice'; urlForDs: string; fileKey: string; fileType: 'docx' | 'pptx' | 'xlsx' | 'pdf'; title: string }
     | { mode: 'fallback'; kind: 'docx' | 'pdf'; buf: ArrayBuffer; title: string }
+    | { mode: 'advanced'; document: any; warnings?: any[] }
 
-export default function ImportDropzone({ onLoaded }: { onLoaded: (l: Loaded) => void }) {
-    const [status, setStatus] = useState<'idle' | 'uploading' | 'ready' | 'error'>('idle')
+interface ImportResult {
+    success: boolean
+    document?: {
+        id: string
+        title: string
+        type: string
+        html: string
+        createdAt: string
+        updatedAt: string
+    }
+    warnings?: any[]
+    error?: string
+}
+
+export default function ImportDropzone({
+    onLoaded,
+    onImportSuccess
+}: {
+    onLoaded?: (l: Loaded) => void
+    onImportSuccess?: (result: ImportResult) => void
+}) {
+    const [status, setStatus] = useState<'idle' | 'uploading' | 'processing' | 'ready' | 'error'>('idle')
     const [dragOver, setDragOver] = useState(false)
+    const [progress, setProgress] = useState(0)
+    const [importMode, setImportMode] = useState<'standard' | 'advanced'>('standard')
+    const [importResult, setImportResult] = useState<ImportResult | null>(null)
 
     async function handleFiles(files: FileList | null) {
         if (!files?.[0]) return
@@ -18,85 +42,148 @@ export default function ImportDropzone({ onLoaded }: { onLoaded: (l: Loaded) => 
         console.log('Загружаем файл:', file.name, file.size, file.type)
 
         const ext = (file.name.split('.').pop() || '').toLowerCase()
-        const type = (['docx', 'pptx', 'xlsx', 'pdf'] as const).includes(ext as any) ? (ext as any) : null
-        if (!type) {
-            toast.error('Поддерживаются .docx, .pptx, .xlsx, .pdf')
-            return
+
+        // Проверяем поддерживаемые форматы в зависимости от режима
+        if (importMode === 'advanced') {
+            if (ext !== 'docx') {
+                toast.error('Для импорта с сохранением стилей поддерживаются только DOCX файлы')
+                return
+            }
+        } else {
+            const type = (['docx', 'pptx', 'xlsx', 'pdf'] as const).includes(ext as any) ? (ext as any) : null
+            if (!type) {
+                toast.error('Поддерживаются .docx, .pptx, .xlsx, .pdf')
+                return
+            }
         }
 
         try {
             setStatus('uploading')
-            console.log('Отправляем файл на сервер...')
+            setProgress(10)
 
-            const fd = new FormData()
-            fd.append('file', file)
-            const res = await fetch('/api/storage/upload', { method: 'POST', body: fd })
-            const json = await res.json()
-            console.log('Ответ сервера:', json)
+            if (importMode === 'advanced') {
+                // Продвинутый импорт с сохранением стилей
+                console.log('Используем продвинутый импорт с сохранением стилей...')
 
-            if (!res.ok || !json?.ok) {
-                throw new Error(json?.error ?? 'UPLOAD_FAILED')
-            }
+                const formData = new FormData()
+                formData.append('file', file)
 
-            // Проверяем, доступен ли OnlyOffice
-            const onlyOfficeEnabled = process.env.NEXT_PUBLIC_ONLYOFFICE_ENABLED === 'true'
+                setProgress(30)
+                setStatus('processing')
 
-            if (onlyOfficeEnabled) {
-                onLoaded({
-                    mode: 'onlyoffice',
-                    urlForDs: json.urlForDs,
-                    fileKey: json.key,
-                    fileType: type,
-                    title: file.name
+                const controller = new AbortController()
+                const timeoutId = setTimeout(() => controller.abort(), 60000)
+
+                const response = await fetch('/api/import', {
+                    method: 'POST',
+                    body: formData,
+                    signal: controller.signal
                 })
-            } else {
-                // fallback: локально прочитаем для docx/pdf
-                console.log('Используем fallback режим для типа:', type)
-                const buf = await file.arrayBuffer()
-                if (type === 'docx' || type === 'pdf') {
-                    console.log('Загружаем fallback компонент для:', type)
 
-                    // Сохраняем документ в БД
-                    try {
-                        const dbResponse = await fetch('/api/test-documents', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                title: file.name,
-                                type: type,
-                                content: '', // Пока пустой
-                                metadata: {
-                                    fileName: file.name,
-                                    fileSize: file.size,
-                                    fileType: file.type,
-                                    lastModified: file.lastModified
-                                }
-                            })
-                        })
+                clearTimeout(timeoutId)
+                setProgress(70)
 
-                        if (dbResponse.ok) {
-                            console.log('Документ сохранен в БД')
-                        } else {
-                            console.error('Ошибка сохранения в БД:', await dbResponse.text())
-                        }
-                    } catch (dbError) {
-                        console.error('Ошибка сохранения в БД:', dbError)
-                    }
+                const result = await response.json()
 
-                    onLoaded({ mode: 'fallback', kind: type, buf, title: file.name })
-                } else {
-                    toast.error('Для pptx/xlsx нужен OnlyOffice (включи Docker документ-сервер)')
-                    setStatus('error')
-                    return
+                if (!response.ok) {
+                    throw new Error(result.error || 'Ошибка импорта')
                 }
-            }
 
-            setStatus('ready')
-            toast.success(`Документ "${file.name}" успешно импортирован`)
+                setProgress(100)
+                setStatus('ready')
+                setImportResult(result)
+
+                toast.success(`Документ "${file.name}" успешно импортирован с сохранением стилей!`)
+
+                if (onImportSuccess) {
+                    onImportSuccess(result)
+                }
+
+                if (onLoaded) {
+                    onLoaded({ mode: 'advanced', document: result.document, warnings: result.warnings })
+                }
+            } else {
+                // Стандартный импорт
+                console.log('Отправляем файл на сервер...')
+
+                const fd = new FormData()
+                fd.append('file', file)
+                const res = await fetch('/api/storage/upload', { method: 'POST', body: fd })
+                const json = await res.json()
+                console.log('Ответ сервера:', json)
+
+                if (!res.ok || !json?.ok) {
+                    throw new Error(json?.error ?? 'UPLOAD_FAILED')
+                }
+
+                // Проверяем, доступен ли OnlyOffice
+                const onlyOfficeEnabled = process.env.NEXT_PUBLIC_ONLYOFFICE_ENABLED === 'true'
+
+                if (onlyOfficeEnabled) {
+                    if (onLoaded) {
+                        onLoaded({
+                            mode: 'onlyoffice',
+                            urlForDs: json.urlForDs,
+                            fileKey: json.key,
+                            fileType: ext as any,
+                            title: file.name
+                        })
+                    }
+                } else {
+                    // fallback: локально прочитаем для docx/pdf
+                    console.log('Используем fallback режим для типа:', ext)
+                    const buf = await file.arrayBuffer()
+                    if (ext === 'docx' || ext === 'pdf') {
+                        console.log('Загружаем fallback компонент для:', ext)
+
+                        // Сохраняем документ в БД
+                        try {
+                            const dbResponse = await fetch('/api/test-documents', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    title: file.name,
+                                    type: ext,
+                                    content: '', // Пока пустой
+                                    metadata: {
+                                        fileName: file.name,
+                                        fileSize: file.size,
+                                        fileType: file.type,
+                                        lastModified: file.lastModified
+                                    }
+                                })
+                            })
+
+                            if (dbResponse.ok) {
+                                console.log('Документ сохранен в БД')
+                            } else {
+                                console.error('Ошибка сохранения в БД:', await dbResponse.text())
+                            }
+                        } catch (dbError) {
+                            console.error('Ошибка сохранения в БД:', dbError)
+                        }
+
+                        if (onLoaded) {
+                            onLoaded({ mode: 'fallback', kind: ext as any, buf, title: file.name })
+                        }
+                    } else {
+                        toast.error('Для pptx/xlsx нужен OnlyOffice (включи Docker документ-сервер)')
+                        setStatus('error')
+                        return
+                    }
+                }
+
+                setStatus('ready')
+                toast.success(`Документ "${file.name}" успешно импортирован`)
+            }
         } catch (e: any) {
             console.error('Ошибка импорта:', e)
             setStatus('error')
-            toast.error(e?.message ?? 'Импорт не удался')
+            if (e.name === 'AbortError') {
+                toast.error('Таймаут загрузки. Файл слишком большой или сервер не отвечает.')
+            } else {
+                toast.error(e?.message ?? 'Импорт не удался')
+            }
         }
     }
 
@@ -116,67 +203,188 @@ export default function ImportDropzone({ onLoaded }: { onLoaded: (l: Loaded) => 
         handleFiles(e.dataTransfer.files)
     }
 
+    const resetImport = () => {
+        setStatus('idle')
+        setProgress(0)
+        setImportResult(null)
+    }
+
     return (
         <div className="p-4">
+            {/* Режим импорта */}
+            <div className="mb-4 flex items-center justify-center space-x-4">
+                <div className="flex items-center space-x-2">
+                    <Settings className="w-4 h-4 text-slate-500" />
+                    <span className="text-sm text-slate-600">Режим импорта:</span>
+                </div>
+                <div className="flex bg-slate-100 rounded-lg p-1">
+                    <button
+                        onClick={() => setImportMode('standard')}
+                        className={`px-3 py-1 text-sm rounded-md transition-colors ${importMode === 'standard'
+                                ? 'bg-white text-slate-900 shadow-sm'
+                                : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                    >
+                        Стандартный
+                    </button>
+                    <button
+                        onClick={() => setImportMode('advanced')}
+                        className={`px-3 py-1 text-sm rounded-md transition-colors ${importMode === 'advanced'
+                                ? 'bg-white text-slate-900 shadow-sm'
+                                : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                    >
+                        С сохранением стилей
+                    </button>
+                </div>
+            </div>
+
             <div
                 className={`rounded-xl border-2 border-dashed p-8 text-center transition-colors ${dragOver
                     ? 'border-blue-400 bg-blue-50'
-                    : 'border-slate-300 hover:border-slate-400'
+                    : status === 'ready'
+                        ? 'border-green-400 bg-green-50'
+                        : 'border-slate-300 hover:border-slate-400'
                     }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
             >
-                <Upload className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">Импорт документа</h3>
-                <p className="text-sm text-slate-600 mb-4">
-                    Перетащите файл сюда или нажмите для выбора
-                </p>
-
-                <input
-                    type="file"
-                    accept=".docx,.pptx,.xlsx,.pdf"
-                    onChange={(e) => handleFiles(e.target.files)}
-                    className="hidden"
-                    id="file-input"
-                />
-
-                <label
-                    htmlFor="file-input"
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
-                >
-                    <FileText className="w-4 h-4 mr-2" />
-                    Выбрать файл
-                </label>
-
-                {status !== 'idle' && (
-                    <div className="mt-4 p-3 rounded-lg bg-slate-50">
-                        <div className="flex items-center space-x-2">
-                            {status === 'uploading' && (
-                                <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                    <p className="text-sm text-slate-600">Загрузка файла...</p>
-                                </>
-                            )}
-                            {status === 'ready' && (
-                                <>
-                                    <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                                    <p className="text-sm text-green-600">Готово!</p>
-                                </>
-                            )}
-                            {status === 'error' && (
-                                <>
-                                    <AlertCircle className="w-4 h-4 text-red-500" />
-                                    <p className="text-sm text-red-600">Ошибка загрузки</p>
-                                </>
-                            )}
-                        </div>
-                    </div>
+                {status === 'idle' && (
+                    <>
+                        <Upload className="w-12 h-12 mx-auto mb-4 text-slate-400" />
+                        <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                            {importMode === 'advanced' ? 'Импорт с сохранением стилей' : 'Импорт документа'}
+                        </h3>
+                        <p className="text-sm text-slate-600 mb-4">
+                            {importMode === 'advanced'
+                                ? 'Перетащите DOCX файл сюда для импорта с полным сохранением форматирования'
+                                : 'Перетащите файл сюда или нажмите для выбора'
+                            }
+                        </p>
+                    </>
                 )}
 
-                <div className="mt-4 text-xs text-slate-500">
-                    <p>Поддерживаемые форматы: DOCX, PPTX, XLSX, PDF</p>
-                    <p>Максимальный размер: 50 МБ</p>
+                {status === 'uploading' && (
+                    <>
+                        <Loader2 className="w-12 h-12 mx-auto mb-4 text-blue-600 animate-spin" />
+                        <h3 className="text-lg font-semibold text-slate-900 mb-2">Загрузка файла</h3>
+                        <p className="text-sm text-slate-600 mb-4">Отправляем файл на сервер...</p>
+                    </>
+                )}
+
+                {status === 'processing' && (
+                    <>
+                        <Loader2 className="w-12 h-12 mx-auto mb-4 text-blue-600 animate-spin" />
+                        <h3 className="text-lg font-semibold text-slate-900 mb-2">Обработка документа</h3>
+                        <p className="text-sm text-slate-600 mb-4">
+                            Извлекаем стили и форматирование...
+                        </p>
+                        <div className="w-full bg-slate-200 rounded-full h-2 mb-4">
+                            <div
+                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${progress}%` }}
+                            />
+                        </div>
+                    </>
+                )}
+
+                {status === 'ready' && importResult && (
+                    <>
+                        <CheckCircle className="w-12 h-12 mx-auto mb-4 text-green-600" />
+                        <h3 className="text-lg font-semibold text-green-900 mb-2">
+                            Импорт завершен!
+                        </h3>
+                        <p className="text-sm text-green-700 mb-4">
+                            Документ &quot;{importResult.document?.title}&quot; успешно импортирован
+                        </p>
+                        {importResult.warnings && importResult.warnings.length > 0 && (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                                <p className="text-xs text-yellow-800">
+                                    Предупреждения: {importResult.warnings.length} элементов требуют внимания
+                                </p>
+                            </div>
+                        )}
+                        <button
+                            onClick={resetImport}
+                            className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
+                        >
+                            Импортировать еще
+                        </button>
+                    </>
+                )}
+
+                {status === 'ready' && !importResult && (
+                    <>
+                        <div className="w-4 h-4 bg-green-500 rounded-full mx-auto mb-4"></div>
+                        <p className="text-sm text-green-600">Готово!</p>
+                    </>
+                )}
+
+                {status === 'error' && (
+                    <>
+                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+                        <h3 className="text-lg font-semibold text-red-900 mb-2">Ошибка импорта</h3>
+                        <p className="text-sm text-red-700 mb-4">
+                            Не удалось импортировать документ
+                        </p>
+                        <button
+                            onClick={resetImport}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                            Попробовать снова
+                        </button>
+                    </>
+                )}
+
+                {status === 'idle' && (
+                    <>
+                        <input
+                            type="file"
+                            accept={importMode === 'advanced' ? '.docx' : '.docx,.pptx,.xlsx,.pdf'}
+                            onChange={(e) => handleFiles(e.target.files)}
+                            className="hidden"
+                            id="file-input"
+                        />
+                        <label
+                            htmlFor="file-input"
+                            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+                        >
+                            <FileText className="w-5 h-5 mr-2" />
+                            {importMode === 'advanced' ? 'Выбрать DOCX файл' : 'Выбрать файл'}
+                        </label>
+                    </>
+                )}
+
+                <div className="mt-6 text-xs text-slate-500">
+                    {importMode === 'advanced' ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                            <div>
+                                <h4 className="font-semibold text-slate-700 mb-2">Что сохраняется:</h4>
+                                <ul className="space-y-1 text-slate-600">
+                                    <li>• Заголовки и стили</li>
+                                    <li>• Шрифты и размеры</li>
+                                    <li>• Цвета и форматирование</li>
+                                    <li>• Таблицы и списки</li>
+                                    <li>• Изображения</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-slate-700 mb-2">Ограничения:</h4>
+                                <ul className="space-y-1 text-slate-600">
+                                    <li>• Только DOCX формат</li>
+                                    <li>• Максимум 50 МБ</li>
+                                    <li>• Сложные макросы не поддерживаются</li>
+                                    <li>• Некоторые стили могут отличаться</li>
+                                </ul>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <p>Поддерживаемые форматы: DOCX, PPTX, XLSX, PDF</p>
+                            <p>Максимальный размер: 50 МБ</p>
+                        </>
+                    )}
                 </div>
             </div>
         </div>
