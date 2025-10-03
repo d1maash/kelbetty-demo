@@ -17,6 +17,7 @@
         "@hookform/resolvers": "^3.3.0",
         "@prisma/client": "^5.6.0",
         "@radix-ui/react-slot": "^1.0.2",
+        "@ree_n/jsdocxtohtml": "^0.7.0",
         "@tanstack/react-query": "^5.0.0",
         "@types/jsonwebtoken": "^9.0.10",
         "@types/node": "^20.0.0",

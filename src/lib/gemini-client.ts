@@ -91,6 +91,19 @@ function isModelNotFoundError(error: unknown): boolean {
 
 type DocumentInfo = { id: string; title: string; html: string; type: string }
 
+type GeminiPatchChange = {
+    selector: string
+    style: Record<string, string>
+    summary: string
+}
+
+type GeminiPatch = {
+    type: 'html_overwrite'
+    documentId: string
+    updatedHtml: string
+    changes: GeminiPatchChange[]
+}
+
 async function generateModelResponse(prompt: string, modelOrder = MODEL_PRIORITY): Promise<string> {
     let lastError: unknown
     let encounteredNotFoundError = false
@@ -279,7 +292,7 @@ function extractSuggestionCandidate(parsed: Record<string, unknown>): unknown {
     return undefined
 }
 
-function normalizeChanges(changes: unknown): GeminiResponse['suggestion']['patch']['changes'] {
+function normalizeChanges(changes: unknown): GeminiPatchChange[] {
     if (!Array.isArray(changes)) {
         return []
     }
@@ -314,7 +327,7 @@ function normalizeChanges(changes: unknown): GeminiResponse['suggestion']['patch
                 summary: summary || `Обновление элементов по селектору ${selector}`
             }
         })
-        .filter((change): change is GeminiResponse['suggestion']['patch']['changes'][number] => change !== null)
+        .filter((change): change is GeminiPatchChange => change !== null)
 }
 
 function normalizeSuggestion(
@@ -442,7 +455,9 @@ async function processLargeDocument(message: string, document: DocumentInfo): Pr
 
     const updatedChunks: string[] = []
     const chunkResponses: string[] = []
-    const aggregatedChanges: GeminiResponse['suggestion']['patch']['changes'] = []
+    const aggregatedChanges: GeminiPatchChange[] = []
+    let encounteredError = false
+    let firstChunkError: unknown
 
     for (let index = 0; index < htmlChunks.length; index += 1) {
         const chunk = htmlChunks[index]
@@ -496,7 +511,21 @@ ${chunk}
             }
         } catch (chunkError) {
             console.error(`Ошибка обработки части ${index + 1}:`, chunkError)
+            encounteredError = true
+            if (!firstChunkError) {
+                firstChunkError = chunkError
+            }
+
             updatedChunks.push(chunk)
+
+            if (index + 1 < htmlChunks.length) {
+                console.warn('Прерываем обработку оставшихся частей из-за ошибки Gemini, возвращаем оригинальные фрагменты.')
+                for (let restIndex = index + 1; restIndex < htmlChunks.length; restIndex += 1) {
+                    updatedChunks.push(htmlChunks[restIndex])
+                }
+            }
+
+            break
         }
     }
 
@@ -514,9 +543,28 @@ ${chunk}
         }
     }
 
+    if (encounteredError && chunkResponses.length === 0) {
+        console.warn('Не удалось обработать документ через Gemini, пробуем локальный fallback.')
+        const fallback = tryLocalFallback(message, document)
+        if (fallback) {
+            return fallback
+        }
+
+        let errorResponse = 'Не удалось обработать документ через Gemini. Повторите попытку позже.'
+        if (firstChunkError instanceof Error && firstChunkError.message) {
+            errorResponse = `Gemini недоступен: ${firstChunkError.message}`
+        }
+
+        return {
+            response: errorResponse
+        }
+    }
+
     const summary = chunkResponses.length > 0
         ? `Обработаны ${chunkResponses.length} частей. ${chunkResponses.join(' ')}`
-        : 'Документ обработан по частям.'
+        : encounteredError
+            ? 'Документ частично обработан. Оставшиеся части возвращены без изменений из-за ошибки Gemini.'
+            : 'Документ обработан по частям.'
 
     return {
         response: summary,
@@ -546,16 +594,7 @@ export interface GeminiResponse {
     suggestion?: {
         description: string
         preview: string
-        patch: {
-            type: 'html_overwrite'
-            documentId: string
-            updatedHtml: string
-            changes: Array<{
-                selector: string
-                style: Record<string, string>
-                summary: string
-            }>
-        }
+        patch: GeminiPatch
     }
 }
 

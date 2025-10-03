@@ -1,7 +1,7 @@
 /* Стили для быстрого импорта с максимальным сохранением форматирования */
 
 .fast-import-document {
-    /* Базовые стили */
+    /* Базовые стили контейнера */
     font-family: 'Times New Roman', serif;
     line-height: 1.6;
     color: #333;
@@ -9,11 +9,31 @@
     margin: 0 auto;
     padding: 40px 20px;
     background: white;
+
+    /* Важно: не переопределяем inline стили */
+    box-sizing: border-box;
 }
 
-/* КРИТИЧНО: Inline стили имеют высший приоритет */
+/* КРИТИЧНО: Inline стили имеют высший приоритет - НЕ ПЕРЕОПРЕДЕЛЯЕМ ИХ */
 .fast-import-document *[style] {
-    /* Не переопределяем inline стили - они важнее всего */
+    /* Inline стили имеют максимальный приоритет - не трогаем их */
+}
+
+/* Принудительно сохраняем inline стили */
+.fast-import-document *[style*="font-size"] {
+    /* Размеры шрифтов из inline стилей не переопределяем */
+}
+
+.fast-import-document *[style*="margin"] {
+    /* Отступы из inline стилей не переопределяем */
+}
+
+.fast-import-document *[style*="text-indent"] {
+    /* Отступы первой строки из inline стилей не переопределяем */
+}
+
+.fast-import-document *[style*="padding"] {
+    /* Внутренние отступы из inline стилей не переопределяем */
 }
 
 /* Заголовки - только если НЕТ inline стилей */

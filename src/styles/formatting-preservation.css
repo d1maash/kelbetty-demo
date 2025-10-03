@@ -1,0 +1,434 @@
+/* Стили для максимального сохранения форматирования импортированных документов */
+
+/* КРИТИЧНО: Inline стили имеют максимальный приоритет */
+.formatting-preservation *[style] {
+    /* Inline стили не должны переопределяться */
+}
+
+/* Принудительное сохранение inline стилей */
+.formatting-preservation *[style*="font-size"] {
+    /* Размеры шрифтов из inline стилей сохраняются */
+}
+
+.formatting-preservation *[style*="margin"] {
+    /* Отступы из inline стилей сохраняются */
+}
+
+.formatting-preservation *[style*="text-indent"] {
+    /* Отступы первой строки из inline стилей сохраняются */
+}
+
+.formatting-preservation *[style*="padding"] {
+    /* Внутренние отступы из inline стилей сохраняются */
+}
+
+.formatting-preservation *[style*="line-height"] {
+    /* Межстрочный интервал из inline стилей сохраняется */
+}
+
+.formatting-preservation *[style*="text-align"] {
+    /* Выравнивание из inline стилей сохраняется */
+}
+
+/* Базовые стили только для элементов БЕЗ inline стилей */
+.formatting-preservation h1:not([style]) {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 24px 0 12px 0;
+    color: #1e293b;
+}
+
+.formatting-preservation h2:not([style]) {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 20px 0 10px 0;
+    color: #1e293b;
+}
+
+.formatting-preservation h3:not([style]) {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 16px 0 8px 0;
+    color: #1e293b;
+}
+
+.formatting-preservation h4:not([style]) {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 14px 0 6px 0;
+    color: #1e293b;
+}
+
+.formatting-preservation h5:not([style]) {
+    font-size: 16px;
+    font-weight: bold;
+    margin: 12px 0 4px 0;
+    color: #1e293b;
+}
+
+.formatting-preservation h6:not([style]) {
+    font-size: 14px;
+    font-weight: bold;
+    margin: 10px 0 4px 0;
+    color: #1e293b;
+}
+
+.formatting-preservation p:not([style]) {
+    margin: 0 0 16px 0;
+    line-height: 1.6;
+    text-align: justify;
+}
+
+.formatting-preservation ul:not([style]),
+.formatting-preservation ol:not([style]) {
+    margin: 16px 0;
+    padding-left: 24px;
+}
+
+.formatting-preservation li:not([style]) {
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+
+.formatting-preservation table:not([style]) {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 20px 0;
+    border: 1px solid #e2e8f0;
+}
+
+.formatting-preservation th:not([style]),
+.formatting-preservation td:not([style]) {
+    border: 1px solid #e2e8f0;
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.formatting-preservation th:not([style]) {
+    background-color: #f8fafc;
+    font-weight: bold;
+}
+
+/* Специальные стили для Word документов */
+.formatting-preservation .MsoNormal {
+    margin: 0;
+    line-height: 1.6;
+}
+
+.formatting-preservation .MsoListParagraph {
+    margin: 0;
+    text-indent: 0;
+}
+
+/* Стили для таблиц Word */
+.formatting-preservation .MsoTableGrid {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.formatting-preservation .MsoTableGrid td,
+.formatting-preservation .MsoTableGrid th {
+    border: 1px solid #000;
+    padding: 4px 8px;
+}
+
+/* Стили для заголовков Word */
+.formatting-preservation .MsoHeading1 {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 24px 0 12px 0;
+    color: #1e293b;
+}
+
+.formatting-preservation .MsoHeading2 {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 20px 0 10px 0;
+    color: #1e293b;
+}
+
+.formatting-preservation .MsoHeading3 {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 16px 0 8px 0;
+    color: #1e293b;
+}
+
+/* Стили для списков Word */
+.formatting-preservation .MsoListBullet {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.formatting-preservation .MsoListNumber {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+/* Стили для отступов Word */
+.formatting-preservation .MsoIndent1 {
+    margin-left: 24px;
+}
+
+.formatting-preservation .MsoIndent2 {
+    margin-left: 48px;
+}
+
+.formatting-preservation .MsoIndent3 {
+    margin-left: 72px;
+}
+
+.formatting-preservation .MsoIndent4 {
+    margin-left: 96px;
+}
+
+/* Стили для выравнивания Word */
+.formatting-preservation .MsoAlignLeft {
+    text-align: left;
+}
+
+.formatting-preservation .MsoAlignCenter {
+    text-align: center;
+}
+
+.formatting-preservation .MsoAlignRight {
+    text-align: right;
+}
+
+.formatting-preservation .MsoAlignJustify {
+    text-align: justify;
+}
+
+/* Стили для размеров шрифтов Word */
+.formatting-preservation .MsoFontSize8 {
+    font-size: 8px;
+}
+
+.formatting-preservation .MsoFontSize9 {
+    font-size: 9px;
+}
+
+.formatting-preservation .MsoFontSize10 {
+    font-size: 10px;
+}
+
+.formatting-preservation .MsoFontSize11 {
+    font-size: 11px;
+}
+
+.formatting-preservation .MsoFontSize12 {
+    font-size: 12px;
+}
+
+.formatting-preservation .MsoFontSize14 {
+    font-size: 14px;
+}
+
+.formatting-preservation .MsoFontSize16 {
+    font-size: 16px;
+}
+
+.formatting-preservation .MsoFontSize18 {
+    font-size: 18px;
+}
+
+.formatting-preservation .MsoFontSize20 {
+    font-size: 20px;
+}
+
+.formatting-preservation .MsoFontSize22 {
+    font-size: 22px;
+}
+
+.formatting-preservation .MsoFontSize24 {
+    font-size: 24px;
+}
+
+.formatting-preservation .MsoFontSize26 {
+    font-size: 26px;
+}
+
+.formatting-preservation .MsoFontSize28 {
+    font-size: 28px;
+}
+
+.formatting-preservation .MsoFontSize30 {
+    font-size: 30px;
+}
+
+.formatting-preservation .MsoFontSize32 {
+    font-size: 32px;
+}
+
+.formatting-preservation .MsoFontSize34 {
+    font-size: 34px;
+}
+
+.formatting-preservation .MsoFontSize36 {
+    font-size: 36px;
+}
+
+/* Стили для цветов Word */
+.formatting-preservation .MsoColorRed {
+    color: #dc2626;
+}
+
+.formatting-preservation .MsoColorBlue {
+    color: #2563eb;
+}
+
+.formatting-preservation .MsoColorGreen {
+    color: #16a34a;
+}
+
+.formatting-preservation .MsoColorYellow {
+    color: #ca8a04;
+}
+
+.formatting-preservation .MsoColorPurple {
+    color: #9333ea;
+}
+
+.formatting-preservation .MsoColorOrange {
+    color: #ea580c;
+}
+
+.formatting-preservation .MsoColorPink {
+    color: #ec4899;
+}
+
+.formatting-preservation .MsoColorGray {
+    color: #6b7280;
+}
+
+.formatting-preservation .MsoColorBlack {
+    color: #000000;
+}
+
+/* Стили для форматирования Word */
+.formatting-preservation .MsoBold {
+    font-weight: bold;
+}
+
+.formatting-preservation .MsoItalic {
+    font-style: italic;
+}
+
+.formatting-preservation .MsoUnderline {
+    text-decoration: underline;
+}
+
+.formatting-preservation .MsoStrike {
+    text-decoration: line-through;
+}
+
+/* Стили для отступов абзацев Word */
+.formatting-preservation .MsoParaSpacing0 {
+    margin-bottom: 0;
+}
+
+.formatting-preservation .MsoParaSpacing6 {
+    margin-bottom: 6px;
+}
+
+.formatting-preservation .MsoParaSpacing12 {
+    margin-bottom: 12px;
+}
+
+.formatting-preservation .MsoParaSpacing18 {
+    margin-bottom: 18px;
+}
+
+.formatting-preservation .MsoParaSpacing24 {
+    margin-bottom: 24px;
+}
+
+/* Стили для межстрочного интервала Word */
+.formatting-preservation .MsoLineHeight100 {
+    line-height: 1.0;
+}
+
+.formatting-preservation .MsoLineHeight115 {
+    line-height: 1.15;
+}
+
+.formatting-preservation .MsoLineHeight150 {
+    line-height: 1.5;
+}
+
+.formatting-preservation .MsoLineHeight200 {
+    line-height: 2.0;
+}
+
+/* Дополнительные стили для сохранения форматирования */
+.formatting-preservation {
+    /* Базовые стили контейнера */
+    font-family: 'Times New Roman', serif;
+    line-height: 1.6;
+    color: #333;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    background: white;
+    box-sizing: border-box;
+}
+
+/* Изображения */
+.formatting-preservation img {
+    max-width: 100%;
+    height: auto;
+    margin: 16px 0;
+    display: block;
+}
+
+/* Форматирование текста */
+.formatting-preservation strong,
+.formatting-preservation b {
+    font-weight: bold;
+}
+
+.formatting-preservation em,
+.formatting-preservation i {
+    font-style: italic;
+}
+
+.formatting-preservation u {
+    text-decoration: underline;
+}
+
+.formatting-preservation del,
+.formatting-preservation s {
+    text-decoration: line-through;
+}
+
+/* Цитаты */
+.formatting-preservation blockquote {
+    margin: 20px 0;
+    padding-left: 20px;
+    border-left: 4px solid #e2e8f0;
+    font-style: italic;
+    color: #64748b;
+}
+
+/* Код */
+.formatting-preservation code {
+    background-color: #f1f5f9;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.formatting-preservation pre {
+    background-color: #f1f5f9;
+    padding: 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 16px 0;
+}
+
+.formatting-preservation pre code {
+    background: none;
+    padding: 0;
+}

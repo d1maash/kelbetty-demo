@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Download, FileText, Loader2, AlertCircle, Save, Edit3, X } from 'lucide-react'
 import { toast } from 'sonner'
 import '@/styles/fast-import.css'
+import '@/styles/formatting-preservation.css'
 
 interface ImportedDocumentViewerProps {
     document: {
@@ -312,16 +313,14 @@ export default function ImportedDocumentViewer({
                 <div className="max-w-4xl mx-auto p-8">
                     <div
                         ref={editorRef}
-                        className={`fast-import-document min-h-full bg-white shadow-sm border border-slate-200 rounded-lg p-8 ${isEditing ? 'outline-none' : ''
+                        className={`fast-import-document formatting-preservation min-h-full bg-white shadow-sm border border-slate-200 rounded-lg p-8 ${isEditing ? 'outline-none' : ''
                             }`}
                         contentEditable={isEditing}
                         suppressContentEditableWarning={true}
                         onInput={handleContentChange}
                         style={{
                             minHeight: '800px',
-                            lineHeight: '1.6',
-                            fontSize: '14px',
-                            fontFamily: 'Times New Roman, serif',
+                            // Убираем конфликтующие стили - пусть inline стили из документа работают
                             outline: isEditing ? 'none' : 'none'
                         }}
                     />
