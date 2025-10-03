@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка выравнивания</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .test-section {
+            border: 2px solid #ccc;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+
+        .preview {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 10px 0;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .result {
+            background: #e7f3ff;
+            border: 1px solid #0066cc;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔍 Проверка выравнивания текста</h1>
+
+    <div class="test-section">
+        <h2>1. Вставьте HTML из импорта</h2>
+        <p>После импорта DOCX, скопируйте HTML из консоли и вставьте сюда:</p>
+        <textarea id="htmlInput" placeholder="Вставьте HTML здесь..."></textarea>
+        <button onclick="analyzeHTML()">Анализировать HTML</button>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Результаты анализа</h2>
+        <div id="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Превью документа</h2>
+        <div id="preview" class="preview"></div>
+    </div>
+
+    <script>
+        function analyzeHTML() {
+            const html = document.getElementById('htmlInput').value;
+            const resultsDiv = document.getElementById('results');
+            const previewDiv = document.getElementById('preview');
+
+            if (!html.trim()) {
+                resultsDiv.innerHTML = '<p style="color: red;">Пожалуйста, вставьте HTML</p>';
+                return;
+            }
+
+            // Анализ
+            const results = [];
+
+            // 1. Проверяем наличие text-align в inline стилях
+            const textAlignRegex = /text-align:\s*(left|center|right|justify)/gi;
+            const matches = html.match(textAlignRegex);
+
+            results.push(`<div class="result">
+                <strong>✓ Найдено text-align стилей:</strong> ${matches ? matches.length : 0}
+                ${matches ? '<br>Примеры: ' + matches.slice(0, 5).join(', ') : ''}
+            </div>`);
+
+            // 2. Проверяем параграфы со стилями
+            const pWithStyleRegex = /<p[^>]*style="([^"]*)"/gi;
+            let pMatches = [];
+            let match;
+            while ((match = pWithStyleRegex.exec(html)) !== null) {
+                pMatches.push(match[1]);
+            }
+
+            results.push(`<div class="result">
+                <strong>✓ Параграфов со стилями:</strong> ${pMatches.length}
+            </div>`);
+
+            // 3. Подсчитываем каждый тип выравнивания
+            const leftCount = (html.match(/text-align:\s*left/gi) || []).length;
+            const centerCount = (html.match(/text-align:\s*center/gi) || []).length;
+            const rightCount = (html.match(/text-align:\s*right/gi) || []).length;
+            const justifyCount = (html.match(/text-align:\s*justify/gi) || []).length;
+
+            results.push(`<div class="result">
+                <strong>Распределение выравниваний:</strong><br>
+                • Left: ${leftCount}<br>
+                • Center: ${centerCount}<br>
+                • Right: ${rightCount}<br>
+                • Justify: ${justifyCount}
+            </div>`);
+
+            // 4. Показываем первые 3 параграфа с их стилями
+            const first3P = pMatches.slice(0, 3);
+            if (first3P.length > 0) {
+                results.push(`<div class="result">
+                    <strong>Первые 3 параграфа (стили):</strong><br>
+                    ${first3P.map((style, i) => `<div style="margin: 5px 0; padding: 5px; background: #fff;">
+                        Параграф ${i + 1}: <code>${style}</code>
+                    </div>`).join('')}
+                </div>`);
+            }
+
+            resultsDiv.innerHTML = results.join('');
+
+            // Показываем превью
+            previewDiv.innerHTML = html;
+        }
+    </script>
+</body>
+
+</html>

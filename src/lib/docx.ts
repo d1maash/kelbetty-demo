@@ -82,6 +82,7 @@ interface FormattingContext {
     resolvedParagraphCache: Map<string, ResolvedParagraphStyle>
     resolvedCharacterCache: Map<string, RunFormatting>
     sectionMargins?: SectionMargins
+    paragraphAlignments: Map<number, string> // индекс параграфа -> выравнивание
 }
 
 export async function convertDocxToHtmlWithStyles(
@@ -122,24 +123,53 @@ async function convertDocxToHtmlWithStylesInternal(
     const formattingContext = await buildFormattingContext(buffer)
     console.log('[convertDocxInternal] Шаг 4: buildFormattingContext завершен')
 
-    const paragraphMarkers: ParagraphStyleMarker[] = []
+    // Используем Map для связи ID параграфа со стилем
+    const paragraphStylesMap = new Map<string, string>()
+    let paragraphIndex = 0
+
     const runMarkers: RunStyleMarker[] = []
 
     const transformParagraphs = (mammoth as any).transforms.paragraph((paragraph: any) => {
+        const currentParagraphIndex = paragraphIndex++
         const resolvedStyle = resolveParagraphStyle(formattingContext, paragraph.styleId)
-        const style = buildParagraphStyle(paragraph, resolvedStyle)
-        const index = paragraphMarkers.length + 1
-        const marker = `__KELBETTY_PARAGRAPH_${index}__`
 
-        paragraphMarkers.push({ marker, style })
+        // ВАЖНО: Берём выравнивание из document.xml (самый надёжный источник)
+        let alignment = formattingContext.paragraphAlignments.get(currentParagraphIndex)
 
-        const markerRun = documents.run([documents.text(marker)])
+        // Fallback: если нет в document.xml, берём из mammoth или resolvedStyle
+        if (!alignment) {
+            alignment = paragraph.alignment || resolvedStyle.alignment
+        }
+
+        if (currentParagraphIndex < 5 && alignment) {
+            console.log(`[transform] Параграф #${currentParagraphIndex}: используем alignment = "${alignment}"`)
+        }
+
+        const effectiveParagraph = {
+            ...paragraph,
+            alignment: alignment || undefined
+        }
+
+        const style = buildParagraphStyle(effectiveParagraph, resolvedStyle)
+
+        // Создаём уникальный маркер для этого параграфа
+        const paragraphId = `__KELBETTY_P_${currentParagraphIndex}__`
+        paragraphStylesMap.set(paragraphId, style)
+
+        if (currentParagraphIndex < 10) {
+            console.log(`[transform] Параграф #${currentParagraphIndex}: ID="${paragraphId}", стиль="${style || '(пусто)'}"`)
+        }
+
+        // Обрабатываем текстовые фрагменты (runs) внутри параграфа
         const transformedChildren = wrapRunsWithMarkers(
             paragraph.children,
             resolvedStyle,
             formattingContext,
             runMarkers
         )
+
+        // Добавляем маркер в начало параграфа как текст
+        const markerRun = documents.run([documents.text(paragraphId)])
 
         return {
             ...paragraph,
@@ -165,9 +195,26 @@ async function convertDocxToHtmlWithStylesInternal(
 
     let html = result.value
 
-    console.log('[convertDocxInternal] Шаг 7: Применяем стили параграфов...')
-    html = applyParagraphStyles(html, paragraphMarkers)
+    console.log('[convertDocxInternal] Шаг 7: Применяем стили параграфов через маркеры...')
+    console.log('[convertDocxInternal] Сохранено стилей для параграфов:', paragraphStylesMap.size)
+    const first10Entries = Array.from(paragraphStylesMap.entries()).slice(0, 10)
+    console.log('[convertDocxInternal] Первые 10 стилей:', first10Entries.map(([id, style]) => ({ id, style: style || '(пусто)' })))
+
+    // Применяем стили по маркерам
+    html = applyParagraphStylesByMarkers(html, paragraphStylesMap)
+
+    // Показываем первые 1500 символов HTML после применения стилей параграфов
+    console.log('[convertDocxInternal] HTML после стилей параграфов (первые 1500 символов):', html.substring(0, 1500))
+
     console.log('[convertDocxInternal] Шаг 8: Применяем стили текстовых фрагментов...')
+    console.log('[convertDocxInternal] Всего маркеров текста:', runMarkers.length)
+    if (runMarkers.length > 0) {
+        console.log('[convertDocxInternal] Первые 3 маркера текста:', runMarkers.slice(0, 3).map(m => ({
+            start: m.startMarker.substring(0, 30),
+            end: m.endMarker.substring(0, 30),
+            style: m.style
+        })))
+    }
     html = applyRunStyles(html, runMarkers)
     console.log('[convertDocxInternal] Шаг 9: Удаляем маркеры...')
     html = removeResidualMarkers(html)
@@ -212,8 +259,25 @@ async function convertDocxToHtmlWithStylesInternal(
     }
 }
 
+// Счетчик для логирования (вне функции)
+let buildParagraphStyleCallCount = 0
+
 function buildParagraphStyle(paragraph: any, resolvedStyle: ResolvedParagraphStyle): string {
     const styles: string[] = []
+
+    // Логирование для отладки (параграфы с 1 по 10)
+    buildParagraphStyleCallCount++
+
+    if (buildParagraphStyleCallCount <= 10) {
+        console.log(`[buildParagraphStyle #${buildParagraphStyleCallCount}]`, {
+            'paragraph.alignment': paragraph.alignment,
+            'paragraph.styleId': paragraph.styleId,
+            'resolvedStyle.alignment': resolvedStyle.alignment,
+            'paragraph keys': Object.keys(paragraph),
+            'indent': paragraph.indent,
+            'spacing': resolvedStyle.spacing
+        })
+    }
 
     const directIndent = normalizeParagraphIndent(paragraph.indent)
     const indent = mergeParagraphIndent(resolvedStyle.indent, directIndent)
@@ -260,13 +324,43 @@ function buildParagraphStyle(paragraph: any, resolvedStyle: ResolvedParagraphSty
         styles.push(lineHeightStyle)
     }
 
-    // Выравнивание
+    // Выравнивание текста (горизонтальное)
     const alignment = paragraph.alignment || resolvedStyle.alignment
     if (alignment) {
-        styles.push(`text-align: ${mapAlignment(alignment)}`)
+        const cssAlignment = mapAlignment(alignment)
+        if (cssAlignment) {
+            styles.push(`text-align: ${cssAlignment}`)
+
+            // Логирование для отладки
+            if (buildParagraphStyleCallCount <= 10) {
+                console.log(`[buildParagraphStyle #${buildParagraphStyleCallCount}] ✅ Добавлено выравнивание: text-align: ${cssAlignment}`)
+            }
+        }
+    } else {
+        // Если выравнивание не найдено, логируем это
+        if (buildParagraphStyleCallCount <= 10) {
+            console.log(`[buildParagraphStyle #${buildParagraphStyleCallCount}] ❌ Выравнивание НЕ найдено!`)
+        }
     }
 
-    return styles.join('; ')
+    // Направление текста (RTL/LTR)
+    if (paragraph.textDirection) {
+        const direction = paragraph.textDirection.toLowerCase()
+        if (direction === 'rtl' || direction === 'righttoleft') {
+            styles.push('direction: rtl')
+        } else if (direction === 'ltr' || direction === 'lefttoright') {
+            styles.push('direction: ltr')
+        }
+    }
+
+    const finalStyle = styles.join('; ')
+
+    // Логируем финальный стиль для первых 10 параграфов
+    if (buildParagraphStyleCallCount <= 10) {
+        console.log(`[buildParagraphStyle #${buildParagraphStyleCallCount}] 📋 Финальный стиль:`, finalStyle || '(пусто)')
+    }
+
+    return finalStyle
 }
 
 function buildRunStyle(
@@ -292,6 +386,70 @@ function buildRunStyle(
             return cleanFont.includes(' ') ? `'${cleanFont}'` : cleanFont
         }).join(', ')
         styles.push(`font-family: ${fontList}`)
+    }
+
+    // Жирный шрифт
+    if (run.isBold === true) {
+        styles.push('font-weight: bold')
+    } else if (run.isBold === false) {
+        styles.push('font-weight: normal')
+    }
+
+    // Курсив
+    if (run.isItalic === true) {
+        styles.push('font-style: italic')
+    } else if (run.isItalic === false) {
+        styles.push('font-style: normal')
+    }
+
+    // Подчеркивание
+    if (run.isUnderline === true || run.underline) {
+        const decorations: string[] = ['underline']
+
+        // Зачеркивание
+        if (run.isStrikethrough === true || run.strikethrough) {
+            decorations.push('line-through')
+        }
+
+        styles.push(`text-decoration: ${decorations.join(' ')}`)
+    } else if (run.isStrikethrough === true || run.strikethrough) {
+        // Только зачеркивание
+        styles.push('text-decoration: line-through')
+    }
+
+    // Цвет текста
+    if (run.color) {
+        const color = normalizeColor(run.color)
+        if (color) {
+            styles.push(`color: ${color}`)
+        }
+    }
+
+    // Цвет фона (highlight)
+    if (run.highlight || run.highlightColor) {
+        const bgColor = normalizeColor(run.highlight || run.highlightColor)
+        if (bgColor) {
+            styles.push(`background-color: ${bgColor}`)
+        }
+    }
+
+    // Верхний/нижний индекс
+    if (run.verticalAlignment === 'superscript' || run.isSuperscript) {
+        styles.push('vertical-align: super')
+        styles.push('font-size: 0.8em')
+    } else if (run.verticalAlignment === 'subscript' || run.isSubscript) {
+        styles.push('vertical-align: sub')
+        styles.push('font-size: 0.8em')
+    }
+
+    // Капитель (small caps)
+    if (run.isSmallCaps === true) {
+        styles.push('font-variant: small-caps')
+    }
+
+    // Все заглавные
+    if (run.isAllCaps === true) {
+        styles.push('text-transform: uppercase')
     }
 
     return styles.join('; ')
@@ -339,6 +497,110 @@ function wrapRunsWithMarkers(
 
         return child
     })
+}
+
+function applyParagraphStylesByMarkers(html: string, stylesMap: Map<string, string>): string {
+    if (stylesMap.size === 0) {
+        return html
+    }
+
+    console.log(`[applyParagraphStylesByMarkers] Применяем стили к ${stylesMap.size} параграфам по маркерам`)
+    let processedCount = 0
+
+    // Для каждого маркера находим его в HTML и применяем стиль к родительскому параграфу
+    const entries = Array.from(stylesMap.entries())
+    for (let i = 0; i < entries.length; i++) {
+        const [markerId, style] = entries[i]
+        if (!style) continue // Пропускаем пустые стили
+
+        const markerIndex = html.indexOf(markerId)
+        if (markerIndex === -1) {
+            if (processedCount < 5) {
+                console.log(`[applyParagraphStylesByMarkers] ⚠️ Маркер "${markerId}" не найден в HTML`)
+            }
+            continue
+        }
+
+        // Ищем открывающий тег параграфа ПЕРЕД маркером
+        const beforeMarker = html.substring(0, markerIndex)
+        const tagMatch = beforeMarker.match(/<(p|h[1-6])([^>]*)>$/i)
+
+        if (!tagMatch) {
+            if (processedCount < 5) {
+                console.log(`[applyParagraphStylesByMarkers] ⚠️ Тег параграфа перед маркером "${markerId}" не найден`)
+            }
+            continue
+        }
+
+        const tagStart = beforeMarker.lastIndexOf(tagMatch[0])
+        const [fullTag, tagName, attrs] = tagMatch
+
+        // Создаём новый тег со стилями
+        let newTag: string
+        if (/style\s*=\s*"([^"]*)"/i.test(attrs)) {
+            newTag = fullTag.replace(/style\s*=\s*"([^"]*)"/i, (m, existing) => {
+                const merged = existing.trim() ? `${existing.trim()}; ${style}` : style
+                return `style="${merged}"`
+            })
+        } else {
+            newTag = `<${tagName}${attrs} style="${style}">`
+        }
+
+        // Заменяем тег и удаляем маркер
+        html = html.substring(0, tagStart) + newTag + html.substring(tagStart + fullTag.length, markerIndex) + html.substring(markerIndex + markerId.length)
+
+        processedCount++
+        if (processedCount <= 5) {
+            console.log(`[applyParagraphStylesByMarkers] ✅ #${processedCount}: маркер "${markerId}" → стиль "${style}"`)
+        }
+    }
+
+    console.log(`[applyParagraphStylesByMarkers] Обработано ${processedCount} параграфов из ${stylesMap.size}`)
+    return html
+}
+
+function applyParagraphStylesDirectly(html: string, styles: string[]): string {
+    if (styles.length === 0) {
+        return html
+    }
+
+    console.log(`[applyParagraphStylesDirectly] Применяем стили к ${styles.length} параграфам`)
+
+    // Ищем все теги параграфов (<p>, <h1>-<h6>) в порядке появления
+    const paragraphTags = /<(p|h[1-6])([^>]*)>/gi
+    let styleIndex = 0
+    let processedCount = 0
+
+    const result = html.replace(paragraphTags, (match, tagName, attrs) => {
+        if (styleIndex >= styles.length) {
+            return match
+        }
+
+        const style = styles[styleIndex++]
+        processedCount++
+
+        if (processedCount % 10 === 0 || processedCount <= 5) {
+            console.log(`[applyParagraphStylesDirectly] Параграф #${processedCount - 1}: применяем стиль "${style || '(пусто)'}"`)
+        }
+
+        if (!style) {
+            return match // Стиль пустой, оставляем тег как есть
+        }
+
+        // Если уже есть style атрибут, добавляем к нему
+        if (/style\s*=\s*"([^"]*)"/i.test(attrs)) {
+            return match.replace(/style\s*=\s*"([^"]*)"/i, (m, existing) => {
+                const merged = existing.trim() ? `${existing.trim()}; ${style}` : style
+                return `style="${merged}"`
+            })
+        }
+
+        // Иначе добавляем новый style атрибут
+        return `<${tagName}${attrs} style="${style}">`
+    })
+
+    console.log(`[applyParagraphStylesDirectly] Обработано ${processedCount} параграфов из ${styles.length}`)
+    return result
 }
 
 function applyParagraphStyles(html: string, markers: ParagraphStyleMarker[]): string {
@@ -474,6 +736,10 @@ async function buildFormattingContext(buffer: Buffer): Promise<FormattingContext
 
         const sectionMargins = documentXml ? parseSectionMargins(documentXml) : undefined
 
+        // ВАЖНО: Парсим выравнивание напрямую из document.xml
+        const paragraphAlignments = documentXml ? parseParagraphAlignmentsFromDocument(documentXml) : new Map<number, string>()
+        console.log(`[buildFormattingContext] Найдено ${paragraphAlignments.size} параграфов с выравниванием в document.xml`)
+
         return {
             paragraphStyles: styles.paragraphStyles,
             characterStyles: styles.characterStyles,
@@ -481,7 +747,8 @@ async function buildFormattingContext(buffer: Buffer): Promise<FormattingContext
             defaultCharacterStyleId: styles.defaultCharacterStyleId,
             resolvedParagraphCache: new Map<string, ResolvedParagraphStyle>(),
             resolvedCharacterCache: new Map<string, RunFormatting>(),
-            sectionMargins
+            sectionMargins,
+            paragraphAlignments
         }
     } catch (error) {
         console.warn('convertDocxToHtmlWithStyles: Ошибка разбора DOCX стилей:', error)
@@ -492,7 +759,8 @@ async function buildFormattingContext(buffer: Buffer): Promise<FormattingContext
             defaultCharacterStyleId: null,
             resolvedParagraphCache: new Map<string, ResolvedParagraphStyle>(),
             resolvedCharacterCache: new Map<string, RunFormatting>(),
-            sectionMargins: undefined
+            sectionMargins: undefined,
+            paragraphAlignments: new Map<number, string>()
         }
     }
 }
@@ -644,7 +912,9 @@ function parseParagraphProperties(styleNode: any): {
 
     const alignmentNode = findChild(paragraphProps, 'w:jc')
     if (alignmentNode) {
-        properties.alignment = alignmentNode.getAttribute('w:val')
+        const alignmentValue = alignmentNode.getAttribute('w:val')
+        properties.alignment = alignmentValue
+        console.log(`[parseParagraphProperties] Найдено выравнивание в XML: "${alignmentValue}"`)
     }
 
     return properties
@@ -678,6 +948,43 @@ function parseRunProperties(styleNode: any): RunFormatting | undefined {
     }
 
     return Object.keys(formatting).length > 0 ? formatting : undefined
+}
+
+function parseParagraphAlignmentsFromDocument(xml: string): Map<number, string> {
+    const alignments = new Map<number, string>()
+
+    try {
+        const parser = new DOMParser()
+        const document = parser.parseFromString(xml, 'application/xml')
+        const paragraphs = document.getElementsByTagName('w:p')
+
+        console.log(`[parseParagraphAlignments] Найдено ${paragraphs.length} параграфов в document.xml`)
+
+        for (let i = 0; i < paragraphs.length; i++) {
+            const paragraph = paragraphs.item(i) as any
+            if (!paragraph) continue
+
+            // Ищем w:pPr -> w:jc в каждом параграфе
+            const pPr = findChild(paragraph, 'w:pPr')
+            if (pPr) {
+                const jc = findChild(pPr, 'w:jc')
+                if (jc) {
+                    const alignmentValue = jc.getAttribute('w:val')
+                    if (alignmentValue) {
+                        alignments.set(i, alignmentValue)
+                        if (i < 5) {
+                            console.log(`[parseParagraphAlignments] Параграф #${i}: alignment = "${alignmentValue}"`)
+                        }
+                    }
+                }
+            }
+        }
+
+        return alignments
+    } catch (error) {
+        console.warn('[parseParagraphAlignments] Ошибка парсинга:', error)
+        return alignments
+    }
 }
 
 function parseSectionMargins(xml: string): SectionMargins | undefined {
@@ -1080,15 +1387,95 @@ function normalizeFontSize(value: any): number | null {
     return null
 }
 
+function normalizeColor(color: string): string | null {
+    if (!color) {
+        return null
+    }
+
+    const normalized = color.trim().toLowerCase()
+
+    // Если уже в формате #RRGGBB или #RGB
+    if (/^#[0-9a-f]{3,6}$/i.test(normalized)) {
+        return normalized
+    }
+
+    // Если в формате RRGGBB (без #)
+    if (/^[0-9a-f]{6}$/i.test(normalized)) {
+        return `#${normalized}`
+    }
+
+    // Если в формате RGB (без #)
+    if (/^[0-9a-f]{3}$/i.test(normalized)) {
+        return `#${normalized}`
+    }
+
+    // Именованные цвета Word
+    const wordColors: Record<string, string | null> = {
+        'black': '#000000',
+        'blue': '#0000FF',
+        'cyan': '#00FFFF',
+        'green': '#00FF00',
+        'magenta': '#FF00FF',
+        'red': '#FF0000',
+        'yellow': '#FFFF00',
+        'white': '#FFFFFF',
+        'darkblue': '#00008B',
+        'darkcyan': '#008B8B',
+        'darkgreen': '#006400',
+        'darkmagenta': '#8B008B',
+        'darkred': '#8B0000',
+        'darkyellow': '#808000',
+        'darkgray': '#A9A9A9',
+        'lightgray': '#D3D3D3',
+        'auto': null // auto означает цвет по умолчанию
+    }
+
+    if (wordColors.hasOwnProperty(normalized)) {
+        return wordColors[normalized]
+    }
+
+    // Если это CSS цвет, возвращаем как есть
+    if (/^(rgb|rgba|hsl|hsla)\(/.test(normalized)) {
+        return normalized
+    }
+
+    // Если неизвестный формат, возвращаем как есть (может быть стандартный CSS цвет)
+    return color
+}
+
 function mapAlignment(alignment: string): string {
-    switch (alignment) {
+    if (!alignment) {
+        return ''
+    }
+
+    const normalized = alignment.toLowerCase().trim()
+
+    switch (normalized) {
+        // Центрирование
         case 'center':
+        case 'centered':
+        case 'middle':
             return 'center'
+
+        // Правое выравнивание
         case 'right':
+        case 'end':
             return 'right'
+
+        // Выравнивание по ширине
         case 'both':
+        case 'justify':
+        case 'distributed':
             return 'justify'
+
+        // Левое выравнивание
+        case 'left':
+        case 'start':
+            return 'left'
+
         default:
+            // Если неизвестное выравнивание, логируем и возвращаем left
+            console.warn(`[mapAlignment] Неизвестное выравнивание: "${alignment}", используем left`)
             return 'left'
     }
 }

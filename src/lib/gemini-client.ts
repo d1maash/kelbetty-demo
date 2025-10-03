@@ -266,6 +266,16 @@ function attemptJsonRepairs(raw: string): string[] {
     // Remove trailing commas before closing braces/brackets
     attempts.push(raw.replace(/,(\s*[}\]])/g, '$1'))
 
+    // Попытка исправить незакрытые строки
+    const bracketFixed = raw.replace(/,(\s*[}\]])/g, '$1')
+    attempts.push(bracketFixed)
+
+    // Более агрессивное исправление - обрезаем до последнего валидного }
+    const lastBrace = raw.lastIndexOf('}')
+    if (lastBrace > 0 && lastBrace < raw.length - 1) {
+        attempts.push(raw.substring(0, lastBrace + 1))
+    }
+
     return attempts
 }
 
@@ -384,6 +394,85 @@ function normalizeSuggestion(
     }
 }
 
+function extractPartialJsonData(sanitized: string, context?: ParseContext): GeminiResponse | null {
+    try {
+        // Извлекаем response
+        const responseMatch = sanitized.match(/"response"\s*:\s*"((?:[^"\\]|\\.)*)"/s)
+        const responseText = responseMatch ? responseMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n') : null
+
+        // Извлекаем updatedHtml - ищем между "updatedHtml": " и следующим ", который не является частью HTML
+        const htmlStartMatch = sanitized.match(/"updatedHtml"\s*:\s*"/)
+        if (!htmlStartMatch || !responseText) {
+            return null
+        }
+
+        const htmlStartPos = htmlStartMatch.index! + htmlStartMatch[0].length
+        let htmlEndPos = -1
+        let depth = 0
+        let inEscape = false
+
+        // Находим конец HTML, учитывая экранированные кавычки
+        for (let i = htmlStartPos; i < sanitized.length; i++) {
+            const char = sanitized[i]
+
+            if (inEscape) {
+                inEscape = false
+                continue
+            }
+
+            if (char === '\\') {
+                inEscape = true
+                continue
+            }
+
+            if (char === '"') {
+                // Проверяем, что после кавычки идет запятая или закрывающая скобка
+                const nextNonSpace = sanitized.slice(i + 1).match(/^\s*([,}])/)?.[1]
+                if (nextNonSpace) {
+                    htmlEndPos = i
+                    break
+                }
+            }
+        }
+
+        if (htmlEndPos === -1) {
+            console.warn('Не удалось найти конец updatedHtml')
+            return null
+        }
+
+        const updatedHtml = sanitized
+            .substring(htmlStartPos, htmlEndPos)
+            .replace(/\\"/g, '"')
+            .replace(/\\n/g, '\n')
+            .replace(/\\t/g, '\t')
+            .replace(/\\\\/g, '\\')
+
+        if (!updatedHtml.trim()) {
+            return null
+        }
+
+        const documentId = context?.documentId || 'unknown-document'
+
+        console.log('Успешно извлечены данные из поврежденного JSON')
+        return {
+            response: responseText,
+            suggestion: {
+                description: 'Изменения применены',
+                preview: 'Предпросмотр недоступен',
+                patch: {
+                    type: 'html_overwrite',
+                    documentId,
+                    updatedHtml,
+                    changes: []
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка при частичном извлечении данных:', error)
+        return null
+    }
+}
+
 function parseGeminiJson(rawText: string, context?: ParseContext): GeminiResponse {
     const jsonMatch = rawText.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
@@ -397,6 +486,7 @@ function parseGeminiJson(rawText: string, context?: ParseContext): GeminiRespons
     const escapedSanitized = escapeControlCharactersInStrings(sanitized)
     const attempts = attemptJsonRepairs(escapedSanitized)
 
+    let lastError: unknown
     for (const candidate of attempts) {
         try {
             const parsed = JSON.parse(candidate) as Record<string, unknown>
@@ -412,13 +502,24 @@ function parseGeminiJson(rawText: string, context?: ParseContext): GeminiRespons
                 suggestion
             }
         } catch (error) {
-            console.error('Ошибка парсинга JSON, пробуем следующий вариант:', error)
+            lastError = error
+            // Не логируем ошибку для каждой попытки, только сохраняем последнюю
         }
     }
 
+    // Логируем только последнюю ошибку
+    console.error('Не удалось распарсить JSON после всех попыток:', lastError)
+
+    // Пытаемся извлечь данные частично (более надежный способ)
+    const partialData = extractPartialJsonData(sanitized, context)
+    if (partialData) {
+        return partialData
+    }
+
+    // Пытаемся извлечь хотя бы текст ответа
     const responseMatch = sanitized.match(/"response"\s*:\s*"([^"]*?)"/)
     if (responseMatch) {
-        console.log('Извлечено поле response из поврежденного JSON')
+        console.log('Извлечено только поле response из поврежденного JSON')
         return {
             response: responseMatch[1] || 'Изменения применены'
         }
