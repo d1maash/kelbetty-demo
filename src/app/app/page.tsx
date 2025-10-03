@@ -10,11 +10,34 @@ import { FileText } from 'lucide-react'
 import type { DocumentData } from '@/hooks/useDocumentImport'
 
 // Динамические импорты для предотвращения SSR проблем
-const OnlyOfficeEditor = dynamic(() => import('@/components/editor/OnlyOfficeEditor'), { ssr: false })
-const FallbackDocx = dynamic(() => import('@/components/editor/FallbackDocx'), { ssr: false })
-const FallbackPdf = dynamic(() => import('@/components/editor/FallbackPdf'), { ssr: false })
-const ImportedDocumentViewer = dynamic(() => import('@/components/editor/ImportedDocumentViewer'), { ssr: false })
-const StyledDocumentViewer = dynamic(() => import('@/components/editor/StyledDocumentViewer'), { ssr: false })
+const OnlyOfficeEditor = dynamic(() => import('@/components/editor/OnlyOfficeEditor'), { 
+    ssr: false,
+    loading: () => <div className="flex items-center justify-center h-full">Загрузка редактора...</div>
+})
+const FallbackDocx = dynamic(() => import('@/components/editor/FallbackDocx'), { 
+    ssr: false,
+    loading: () => <div className="flex items-center justify-center h-full">Загрузка...</div>
+})
+const FallbackPdf = dynamic(() => import('@/components/editor/FallbackPdf'), { 
+    ssr: false,
+    loading: () => <div className="flex items-center justify-center h-full">Загрузка...</div>
+})
+const ImportedDocumentViewer = dynamic(() => import('@/components/editor/ImportedDocumentViewer'), { 
+    ssr: false,
+    loading: () => <div className="flex items-center justify-center h-full">Загрузка...</div>
+})
+const StyledDocumentViewer = dynamic(() => import('@/components/editor/StyledDocumentViewer'), { 
+    ssr: false,
+    loading: () => <div className="flex items-center justify-center h-full">Загрузка...</div>
+})
+const LibreOfficeDocumentViewer = dynamic(() => import('@/components/editor/LibreOfficeDocumentViewer'), { 
+    ssr: false,
+    loading: () => <div className="flex items-center justify-center h-full">Загрузка...</div>
+})
+const DocumentIframeViewer = dynamic(() => import('@/components/DocumentIframeViewer'), { 
+    ssr: false,
+    loading: () => <div className="flex items-center justify-center h-full">Загрузка документа...</div>
+})
 
 type DocState =
     | { kind: 'none' }
@@ -38,7 +61,7 @@ export default function AppPage() {
 
 
     const [doc, setDoc] = useState<DocState>({ kind: 'none' })
-    const [viewMode, setViewMode] = useState<'styled' | 'advanced'>('styled')
+    const [viewMode, setViewMode] = useState<'styled' | 'advanced' | 'libreoffice' | 'iframe'>('iframe')
     const [isAiProcessing, setIsAiProcessing] = useState(false)
     const [previewHtml, setPreviewHtml] = useState<string | null>(null)
 
@@ -60,7 +83,20 @@ export default function AppPage() {
         } else if (loaded.mode === 'advanced' && loaded.document) {
             // Продвинутый импорт - документ уже сохранен в БД
             console.log('Продвинутый импорт завершен, документ:', loaded.document)
-            // Документ уже в БД, просто обновляем состояние
+            // Немедленно синхронизируем и выбираем документ для отображения
+            const normalized = {
+                id: loaded.document.id,
+                type: loaded.document.type,
+                title: loaded.document.title,
+                html: loaded.document.html,
+                metadata: {
+                    storageKey: loaded.document.storageKey
+                },
+                createdAt: loaded.document.createdAt,
+                updatedAt: loaded.document.updatedAt
+            }
+            syncDocument(normalized as any)
+            selectDocument(normalized as any)
             setDoc({ kind: 'none' })
         }
 
@@ -189,6 +225,24 @@ export default function AppPage() {
                                     >
                                         Продвинутый
                                     </button>
+                                    <button
+                                        onClick={() => setViewMode('libreoffice')}
+                                        className={`px-3 py-1 text-xs rounded ${viewMode === 'libreoffice'
+                                            ? 'bg-green-600 text-white'
+                                            : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                                            }`}
+                                    >
+                                        LibreOffice
+                                    </button>
+                                    <button
+                                        onClick={() => setViewMode('iframe')}
+                                        className={`px-3 py-1 text-xs rounded ${viewMode === 'iframe'
+                                            ? 'bg-purple-600 text-white'
+                                            : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                                            }`}
+                                    >
+                                        iframe
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -218,6 +272,50 @@ export default function AppPage() {
                         {/* Продвинутый режим */}
                         {viewMode === 'advanced' && currentDocument.html && (
                             <ImportedDocumentViewer
+                                document={{
+                                    id: currentDocument.id,
+                                    title: currentDocument.title,
+                                    html: previewHtml || currentDocument.html,
+                                    type: currentDocument.type,
+                                    createdAt: currentDocument.createdAt || new Date().toISOString(),
+                                    updatedAt: currentDocument.updatedAt || new Date().toISOString(),
+                                    metadata: currentDocument.metadata
+                                }}
+                                onSave={async (documentId, html) => {
+                                    await updateDocument(documentId, { html })
+                                }}
+                                onAcceptChanges={handleAcceptChanges}
+                                onRejectChanges={handleRejectChanges}
+                                isAiProcessing={isAiProcessing}
+                                isPreview={!!previewHtml}
+                            />
+                        )}
+
+                        {/* LibreOffice режим */}
+                        {viewMode === 'libreoffice' && currentDocument.html && (
+                            <LibreOfficeDocumentViewer
+                                document={{
+                                    id: currentDocument.id,
+                                    title: currentDocument.title,
+                                    html: previewHtml || currentDocument.html,
+                                    type: currentDocument.type,
+                                    createdAt: currentDocument.createdAt || new Date().toISOString(),
+                                    updatedAt: currentDocument.updatedAt || new Date().toISOString(),
+                                    metadata: currentDocument.metadata
+                                }}
+                                onSave={async (documentId, html) => {
+                                    await updateDocument(documentId, { html })
+                                }}
+                                onAcceptChanges={handleAcceptChanges}
+                                onRejectChanges={handleRejectChanges}
+                                isAiProcessing={isAiProcessing}
+                                isPreview={!!previewHtml}
+                            />
+                        )}
+
+                        {/* iframe режим с максимальным сохранением форматирования */}
+                        {viewMode === 'iframe' && currentDocument.html && (
+                            <DocumentIframeViewer
                                 document={{
                                     id: currentDocument.id,
                                     title: currentDocument.title,

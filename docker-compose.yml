@@ -25,6 +25,11 @@ services:
       - "8082:80"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    environment:
+      - JWT_ENABLED=false
+    volumes:
+      - onlyoffice_data:/var/www/onlyoffice/Data
 
 volumes:
   db_data:
+  onlyoffice_data:

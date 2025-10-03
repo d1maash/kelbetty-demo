@@ -88,25 +88,39 @@ export async function convertDocxToHtmlWithStyles(
     input: ArrayBuffer | Uint8Array | Buffer,
     options: ConvertOptions = {}
 ): Promise<ConvertResult> {
+    console.log('[convertDocxToHtmlWithStyles] НАЧАЛО функции')
+
     // Добавляем таймаут для предотвращения зависания
     const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Таймаут конвертации DOCX')), 60000) // 60 секунд
+        setTimeout(() => {
+            console.error('[convertDocxToHtmlWithStyles] ТАЙМАУТ! Превышено 90 секунд')
+            reject(new Error('Таймаут конвертации DOCX (90 сек)'))
+        }, 90000) // 90 секунд
     })
 
     const convertPromise = convertDocxToHtmlWithStylesInternal(input, options)
 
-    return Promise.race([convertPromise, timeoutPromise])
+    try {
+        const result = await Promise.race([convertPromise, timeoutPromise])
+        console.log('[convertDocxToHtmlWithStyles] УСПЕХ, HTML длина:', result.html.length)
+        return result
+    } catch (error) {
+        console.error('[convertDocxToHtmlWithStyles] ОШИБКА:', error)
+        throw error
+    }
 }
 
 async function convertDocxToHtmlWithStylesInternal(
     input: ArrayBuffer | Uint8Array | Buffer,
     options: ConvertOptions = {}
 ): Promise<ConvertResult> {
-    console.log('convertDocxToHtmlWithStyles: Начало конвертации')
+    console.log('[convertDocxInternal] Шаг 1: Начало конвертации')
     const buffer = toBuffer(input)
-    console.log('convertDocxToHtmlWithStyles: Буфер создан, размер:', buffer.length)
+    console.log('[convertDocxInternal] Шаг 2: Буфер создан, размер:', buffer.length, 'байт')
 
+    console.log('[convertDocxInternal] Шаг 3: Начинаем buildFormattingContext...')
     const formattingContext = await buildFormattingContext(buffer)
+    console.log('[convertDocxInternal] Шаг 4: buildFormattingContext завершен')
 
     const paragraphMarkers: ParagraphStyleMarker[] = []
     const runMarkers: RunStyleMarker[] = []
@@ -135,7 +149,7 @@ async function convertDocxToHtmlWithStylesInternal(
 
     const transformDocument = (document: any) => transformParagraphs(document)
 
-    console.log('convertDocxToHtmlWithStyles: Запускаем mammoth.convertToHtml')
+    console.log('[convertDocxInternal] Шаг 5: Запускаем mammoth.convertToHtml...')
     const mammothOptions: any = {
         includeDefaultStyleMap: true,
         convertImage: options.convertImage,
@@ -147,23 +161,27 @@ async function convertDocxToHtmlWithStylesInternal(
     }
 
     const result = await mammoth.convertToHtml({ buffer }, mammothOptions)
-    console.log('convertDocxToHtmlWithStyles: mammoth.convertToHtml завершен')
+    console.log('[convertDocxInternal] Шаг 6: mammoth.convertToHtml завершен, HTML длина:', result.value.length)
 
     let html = result.value
 
-    console.log('convertDocxToHtmlWithStyles: Применяем стили параграфов и текстовых фрагментов')
+    console.log('[convertDocxInternal] Шаг 7: Применяем стили параграфов...')
     html = applyParagraphStyles(html, paragraphMarkers)
+    console.log('[convertDocxInternal] Шаг 8: Применяем стили текстовых фрагментов...')
     html = applyRunStyles(html, runMarkers)
+    console.log('[convertDocxInternal] Шаг 9: Удаляем маркеры...')
     html = removeResidualMarkers(html)
 
     // Дополнительная обработка для улучшения сохранения форматирования
+    console.log('[convertDocxInternal] Шаг 10: Улучшаем форматирование...')
     html = enhanceFormattingPreservation(html)
 
+    console.log('[convertDocxInternal] Шаг 11: Проверяем section margins...')
     if (formattingContext.sectionMargins) {
         html = wrapHtmlWithSectionMargins(html, formattingContext.sectionMargins)
     }
 
-    console.log('convertDocxToHtmlWithStyles: Применяем базовые стили только к элементам БЕЗ inline стилей')
+    console.log('[convertDocxInternal] Шаг 12: Применяем базовые стили к элементам БЕЗ inline стилей...')
 
     // Применяем базовые стили ТОЛЬКО к элементам без inline стилей
     html = html
@@ -185,9 +203,9 @@ async function convertDocxToHtmlWithStylesInternal(
         .replace(/<td(?!\s+style)/gi, '<td style="border: 1pt solid #000; padding: 2pt;"')
         .replace(/<th(?!\s+style)/gi, '<th style="border: 1pt solid #000; padding: 2pt; font-weight: bold; background-color: #f0f0f0;"')
 
-    console.log('convertDocxToHtmlWithStyles: Базовые стили применены только к элементам без inline стилей')
+    console.log('[convertDocxInternal] Шаг 13: ГОТОВО! Финальный размер HTML:', html.length, 'символов')
+    console.log('[convertDocxInternal] Количество предупреждений:', result.messages.length)
 
-    console.log('convertDocxToHtmlWithStyles: Конвертация завершена, размер HTML:', html.length)
     return {
         html,
         warnings: result.messages
@@ -324,50 +342,100 @@ function wrapRunsWithMarkers(
 }
 
 function applyParagraphStyles(html: string, markers: ParagraphStyleMarker[]): string {
+    if (markers.length === 0) {
+        return html
+    }
+
+    console.log(`[applyParagraphStyles] Обработка ${markers.length} маркеров параграфов...`)
+
+    // Один проход: заменяем все маркеры и применяем стили
     let output = html
+    let processedCount = 0
 
-    for (const { marker, style } of markers) {
-        let index = output.indexOf(marker)
-        while (index !== -1) {
-            const tagStart = output.lastIndexOf('<', index)
-            const tagEnd = output.indexOf('>', tagStart)
+    for (let i = 0; i < markers.length; i++) {
+        const { marker, style } = markers[i]
+        processedCount++
+        if (processedCount % 50 === 0) {
+            console.log(`[applyParagraphStyles] Обработано ${processedCount}/${markers.length} маркеров`)
+        }
 
-            if (tagStart === -1 || tagEnd === -1) {
-                break
+        // Простая замена: находим маркер, ищем его родительский тег и добавляем стиль
+        let searchStart = 0
+        while (true) {
+            const markerIndex = output.indexOf(marker, searchStart)
+            if (markerIndex === -1) break
+
+            // Ищем начало тега перед маркером
+            const beforeMarker = output.substring(0, markerIndex)
+            const tagStart = beforeMarker.lastIndexOf('<')
+
+            if (tagStart === -1) {
+                // Маркер не внутри тега, просто удаляем
+                output = output.substring(0, markerIndex) + output.substring(markerIndex + marker.length)
+                searchStart = markerIndex
+                continue
             }
 
-            const tag = output.slice(tagStart, tagEnd + 1)
+            const tagEnd = output.indexOf('>', tagStart)
+            if (tagEnd === -1 || tagEnd < markerIndex) {
+                // Некорректная структура, удаляем маркер
+                output = output.substring(0, markerIndex) + output.substring(markerIndex + marker.length)
+                searchStart = markerIndex
+                continue
+            }
+
+            // Извлекаем тег и обновляем стили
+            const tag = output.substring(tagStart, tagEnd + 1)
             const updatedTag = style ? addStyleToTag(tag, style) : tag
 
-            output = output.slice(0, tagStart) + updatedTag + output.slice(tagEnd + 1)
-            output = output.slice(0, index) + output.slice(index + marker.length)
-            index = output.indexOf(marker)
+            // Собираем результат: до тега + обновленный тег + после тега (без маркера)
+            output = output.substring(0, tagStart) + updatedTag + output.substring(tagEnd + 1, markerIndex) + output.substring(markerIndex + marker.length)
+
+            // Продолжаем поиск со следующей позиции
+            searchStart = tagStart + updatedTag.length
         }
     }
 
+    console.log(`[applyParagraphStyles] Все ${markers.length} маркеров обработаны`)
     return output
 }
 
 function applyRunStyles(html: string, markers: RunStyleMarker[]): string {
+    if (markers.length === 0) {
+        return html
+    }
+
+    console.log(`[applyRunStyles] Обработка ${markers.length} маркеров текстовых фрагментов...`)
     let output = html
+    let processedCount = 0
 
     for (const { startMarker, endMarker, style } of markers) {
+        processedCount++
+        if (processedCount % 100 === 0) {
+            console.log(`[applyRunStyles] Обработано ${processedCount}/${markers.length} маркеров`)
+        }
+
         if (!style) {
+            // Просто удаляем маркеры без стилей
+            output = output.split(startMarker).join('').split(endMarker).join('')
             continue
         }
 
         const regex = new RegExp(`${escapeForRegex(startMarker)}([\\s\\S]*?)${escapeForRegex(endMarker)}`, 'g')
         output = output.replace(regex, (_match, content) => {
-            const cleaned = content
-            return `<span style="${style}">${cleaned}</span>`
+            return `<span style="${style}">${content}</span>`
         })
     }
 
+    console.log(`[applyRunStyles] Все ${markers.length} маркеров обработаны`)
     return output
 }
 
 function removeResidualMarkers(html: string): string {
-    return html.replace(/__KELBETTY_[A-Z0-9_]+__/g, '')
+    console.log('[removeResidualMarkers] Удаляем оставшиеся маркеры...')
+    const result = html.replace(/__KELBETTY_[A-Z0-9_]+__/g, '')
+    console.log('[removeResidualMarkers] Готово')
+    return result
 }
 
 function addStyleToTag(tag: string, style: string): string {
@@ -1045,7 +1113,7 @@ function toBuffer(input: ArrayBuffer | Uint8Array | Buffer): Buffer {
  * Дополнительная обработка HTML для улучшения сохранения форматирования
  */
 function enhanceFormattingPreservation(html: string): string {
-    console.log('enhanceFormattingPreservation: Начинаем дополнительную обработку форматирования')
+    console.log('[enhanceFormattingPreservation] Начинаем дополнительную обработку...')
 
     let enhancedHtml = html
 
@@ -1121,6 +1189,6 @@ function enhanceFormattingPreservation(html: string): string {
     enhancedHtml = enhancedHtml.replace(/style="\s*"/gi, '')
     enhancedHtml = enhancedHtml.replace(/style="\s*;\s*"/gi, '')
 
-    console.log('enhanceFormattingPreservation: Дополнительная обработка завершена')
+    console.log('[enhanceFormattingPreservation] Дополнительная обработка завершена')
     return enhancedHtml
 }

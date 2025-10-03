@@ -1,0 +1,68 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kelbetty
+      POSTGRES_PASSWORD: kelbetty
+      POSTGRES_DB: kelbetty
+    ports:
+      - '5432:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kelbetty"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  app:
+    build: .
+    container_name: kelbetty-app-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://kelbetty:kelbetty@db:5432/kelbetty
+      - NEXTAUTH_SECRET=dev-secret-key
+      - NEXTAUTH_URL=http://localhost:3000
+      - DISPLAY=:99
+      - LIBREOFFICE_HOME=/tmp/libreoffice
+      - NODE_ENV=development
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
+      - ./next.config.js:/app/next.config.js
+      - ./tailwind.config.ts:/app/tailwind.config.ts
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./prisma:/app/prisma
+      - convert_data:/tmp/convert
+      - assets_data:/tmp/assets
+      - libreoffice_data:/tmp/libreoffice
+    depends_on:
+      db:
+        condition: service_healthy
+    command: npm run dev
+
+  documentserver:
+    image: onlyoffice/documentserver:latest
+    container_name: onlyoffice-dev
+    restart: unless-stopped
+    ports:
+      - "8082:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - JWT_ENABLED=false
+    volumes:
+      - onlyoffice_data:/var/www/onlyoffice/Data
+
+volumes:
+  db_data:
+  convert_data:
+  assets_data:
+  libreoffice_data:
+  onlyoffice_data:
